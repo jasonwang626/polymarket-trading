@@ -1,0 +1,17 @@
+{
+  "id": "offline-btc-15m",
+  "conditionId": "0xoffline-condition",
+  "slug": "bitcoin-up-or-down-offline",
+  "question": "Will Bitcoin be above $62,000 in 30 minutes?",
+  "description": "Offline fixture for the read-only scanner.",
+  "outcomes": "[\"Yes\", \"No\"]",
+  "outcomePrices": "[\"0.56\", \"0.44\"]",
+  "clobTokenIds": "[\"offline-yes-token\", \"offline-no-token\"]",
+  "endDate": "2099-01-01T00:00:00Z",
+  "liquidityNum": 25000,
+  "volume24hr": 180000,
+  "active": true,
+  "closed": false,
+  "acceptingOrders": true
+}
+

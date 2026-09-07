@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "polymarket-trading"
+version = "0.1.0"
+description = "Read-only Polymarket crypto market scanner (Phase 0 / Sprint 1)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx[socks]>=0.27,<1",
+  "pydantic>=2.8,<3",
+  "PyYAML>=6.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.24,<1",
+  "ruff>=0.6,<1",
+]
+
+[project.scripts]
+polymarket-scanner = "polymarket_agent.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/polymarket_agent"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
