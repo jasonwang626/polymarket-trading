@@ -77,3 +77,15 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 - [回歸與升級測試](../tests/test_regressions.py)
 
 [官方搜尋 API](https://docs.polymarket.us/api-reference/search/search)、[委託簿](https://docs.polymarket.us/api-reference/markets/get-market-book)、[歷史資料語意](https://docs.polymarket.us/api-reference/price-history/get-price-history)。
+
+
+## 外部價格等待上限補充驗證（2026-09-08）
+
+新增 `api.external_request_budget_seconds: 3`，限制每個來源／商品的完整請求等待時間。BTC 與 ETH 仍並行取得；Coinbase 失敗後才啟動 Kraken。兩個來源皆無回應時，外部價格階段預期約 6 秒後回傳缺失結果（另加排程與取消清理時間）；這不是整輪掃描的時間上限。保留來源時間戳檢查，不以過期快取取代缺失價格。
+
+- 鎖定環境完整測試：58 項通過；Ruff 通過。
+- 100 輪交替模擬無回應與正常回應：每輪均在測試上限內完成，無殘留請求，恢復後可再次取得 BTC／ETH。
+- 主要來源無回應時，可取得備援的新鮮價格；取消操作可傳遞並清理進行中的請求。
+- 真實 Coinbase HTTP 探測 8 秒逾時。後續五輪外部來源驗證曾多次記錄來源失敗，但執行環境回報網路核准流程在取得決定前被取消，未取得完整結束摘要，因此不計為通過的五輪實測。
+
+連線根因尚未定位；外部資料連通性及完整交易時段穩定性仍待可正常連線的部署環境驗收。此補充不改變先前歷史報價驗證結果，不建立勝率或損益主張，也不啟用下單。

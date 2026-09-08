@@ -29,6 +29,7 @@ class ApiConfig(BaseModel):
     coinbase_base_url: str
     kraken_base_url: str
     timeout_seconds: float = Field(default=12, gt=0, le=60)
+    external_request_budget_seconds: float = Field(default=3, gt=0, le=30)
     user_agent: str = "polymarket-readonly-agent/0.1"
     retry_attempts: int = Field(default=3, ge=1, le=5)
     retry_base_seconds: float = Field(default=0.5, ge=0, le=5)

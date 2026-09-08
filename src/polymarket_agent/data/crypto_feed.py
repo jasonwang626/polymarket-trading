@@ -62,11 +62,14 @@ class CryptoPriceFeed:
 
     async def get_btc_eth(self) -> dict[str, ExternalPrice]:
         observations = await asyncio.gather(
-            *(self.get_spot(x) for x in self.SUPPORTED_PRODUCTS), return_exceptions=True
+            *(asyncio.wait_for(self.get_spot(x), self.settings.api.external_request_budget_seconds)
+              for x in self.SUPPORTED_PRODUCTS), return_exceptions=True
         )
         successful: dict[str, ExternalPrice] = {}
         for product, observation in zip(self.SUPPORTED_PRODUCTS, observations, strict=True):
-            if isinstance(observation, BaseException):
+            if isinstance(observation, asyncio.CancelledError):
+                raise observation
+            if isinstance(observation, Exception):
                 LOGGER.warning(
                     "External price request failed; affected markets will be NO_TRADE",
                     extra={"product": product, "error": repr(observation)},
@@ -117,9 +120,14 @@ class CryptoPriceFeed:
                 received_at=datetime.now(UTC), price=float(row[0]),
             )
 
-        results = await asyncio.gather(*(fetch(x) for x in products), return_exceptions=True)
+        results = await asyncio.gather(
+            *(asyncio.wait_for(fetch(x), self.settings.api.external_request_budget_seconds)
+              for x in products), return_exceptions=True
+        )
         prices: dict[str, ExternalPrice] = {}
         for product, value in zip(products, results, strict=True):
+            if isinstance(value, asyncio.CancelledError):
+                raise value
             if isinstance(value, ExternalPrice) and 0 <= (
                 datetime.now(UTC) - value.timestamp
             ).total_seconds() <= self.settings.scanner.external_price_stale_seconds:
