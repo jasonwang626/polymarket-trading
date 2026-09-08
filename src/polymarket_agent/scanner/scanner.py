@@ -67,7 +67,11 @@ def classify(features: FeatureSnapshot, market: Market, settings: Settings) -> t
         if market.contract_type == "unknown":
             return ScanStatus.NO_TRADE, ["尚未支援的合約規則"]
         if min(features.bid_depth_usd, features.ask_depth_usd) < settings.filters.min_book_depth_usd:
-            return ScanStatus.NO_TRADE, ["最優價附近的雙邊掛單金額不足"]
+            return ScanStatus.NO_TRADE, [
+                ("最優價附近的雙邊掛單金額不足"
+                f"（買方 ${features.bid_depth_usd:.2f}；賣方 ${features.ask_depth_usd:.2f}；"
+                f"每側門檻 ${settings.filters.min_book_depth_usd:.2f}）")
+            ]
         return ScanStatus.WATCH, [
             f"US {market.contract_type} 行情監控；尚未建立經驗證的勝率模型",
             "公開 REST 未提供逐筆成交流；成交量特徵保留空值",
@@ -274,6 +278,7 @@ def print_results(results: list[ScanResult]) -> None:
         print(f"Spread    {_fmt_float(f.spread)}")
         print(f"Volume5m  {_fmt_money(f.volume_5m)}")
         print(f"VolAccel  {_fmt_float(f.volume_acceleration, 2)}x")
+        print(f"Depth USD 買方 ${f.bid_depth_usd:,.2f} / 賣方 ${f.ask_depth_usd:,.2f}")
         print(f"OB Imbal  {_fmt_float(f.orderbook_imbalance, 2)}")
         print(f"{f.external_symbol or 'Spot':<9} {_fmt_money(f.external_spot)} / 5m {_fmt_pct(f.external_return_5m)}")
         print(f"Signal    {result.status.value}")

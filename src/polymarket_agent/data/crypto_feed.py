@@ -43,12 +43,48 @@ class CryptoPriceFeed:
         if self._owns_kraken_client:
             await self.kraken_client.aclose()
 
+    def _accept_price(self, observation: ExternalPrice) -> bool:
+        checked_at = datetime.now(UTC)
+        age = (checked_at - observation.timestamp).total_seconds()
+        limit = self.settings.scanner.external_price_stale_seconds
+        reason = "future_timestamp" if age < 0 else "stale" if age > limit else "accepted"
+        fields = {"venue": observation.venue, "product": observation.symbol,
+                      "source_timestamp": observation.timestamp.isoformat(),
+                      "received_at": observation.received_at.isoformat(),
+                      "checked_at": checked_at.isoformat(), "age_seconds": age,
+                      "max_age_seconds": limit, "reason": reason}
+        LOGGER.log(logging.INFO if reason == "accepted" else logging.WARNING,
+                   "External price %s product=%s venue=%s source=%s received=%s "
+                   "checked=%s age_seconds=%.6f limit_seconds=%s",
+                   reason, observation.symbol, observation.venue,
+                   fields["source_timestamp"], fields["received_at"],
+                   fields["checked_at"], age, limit, extra=fields)
+        return reason == "accepted"
+
+    @staticmethod
+    def _log_failure(product: str, venue: str, error: Exception) -> None:
+        if isinstance(error, (TimeoutError, httpx.TimeoutException)):
+            reason = "timeout"
+        elif isinstance(error, httpx.HTTPStatusError):
+            reason = "http_status_error"
+        elif isinstance(error, httpx.HTTPError):
+            reason = "transport_error"
+        else:
+            reason = "parse_or_validation_error"
+        # Record the exception type, not arbitrary payloads or request headers.
+        LOGGER.warning("External price rejected product=%s venue=%s reason=%s error_type=%s",
+                       product, venue, reason, type(error).__name__,
+                       extra={"product": product, "venue": venue, "reason": reason,
+                                  "error_type": type(error).__name__})
+
     async def get_spot(self, product_id: str) -> ExternalPrice:
         if product_id not in self.SUPPORTED_PRODUCTS:
             raise ValueError(f"Unsupported public price product: {product_id}")
         response = await self.client.get(f"/products/{product_id}/ticker")
         response.raise_for_status()
         payload = response.json()
+        LOGGER.info("External source timestamp product=%s venue=coinbase raw_time=%r",
+                    product_id, str(payload.get("time"))[:200])
         timestamp = datetime.fromisoformat(payload["time"])
         if timestamp.tzinfo is None:
             raise ValueError("Coinbase ticker time lacks timezone")
@@ -70,16 +106,8 @@ class CryptoPriceFeed:
             if isinstance(observation, asyncio.CancelledError):
                 raise observation
             if isinstance(observation, Exception):
-                LOGGER.warning(
-                    "External price request failed; affected markets will be NO_TRADE",
-                    extra={"product": product, "error": repr(observation)},
-                )
-            elif not 0 <= (datetime.now(UTC) - observation.timestamp).total_seconds() <= (
-                self.settings.scanner.external_price_stale_seconds
-            ):
-                LOGGER.warning("Coinbase source timestamp is stale or in the future",
-                               extra={"product": product})
-            else:
+                self._log_failure(product, "coinbase", observation)
+            elif self._accept_price(observation):
                 successful[observation.symbol] = observation
         missing = set(self.SUPPORTED_PRODUCTS) - successful.keys()
         if missing:
@@ -90,7 +118,8 @@ class CryptoPriceFeed:
                         successful[product] = kraken[product]
                 if kraken:
                     LOGGER.info(
-                        "Used public Kraken fallback prices",
+                        "Used public Kraken fallback prices products=%s",
+                    sorted(missing & kraken.keys()),
                         extra={"products": sorted(missing & kraken.keys())},
                     )
             except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
@@ -114,6 +143,8 @@ class CryptoPriceFeed:
                 raise ValueError(f"Kraken public trade error: {payload['error']}")
             expected = {"BTC-USD": "XXBTZUSD", "ETH-USD": "XETHZUSD"}[product]
             row = payload["result"][expected][-1]
+            LOGGER.info("External source timestamp product=%s venue=kraken raw_time=%r",
+                        product, str(row[2])[:200])
             return ExternalPrice(
                 symbol=product, venue="kraken",
                 timestamp=datetime.fromtimestamp(float(row[2]), UTC),
@@ -128,13 +159,9 @@ class CryptoPriceFeed:
         for product, value in zip(products, results, strict=True):
             if isinstance(value, asyncio.CancelledError):
                 raise value
-            if isinstance(value, ExternalPrice) and 0 <= (
-                datetime.now(UTC) - value.timestamp
-            ).total_seconds() <= self.settings.scanner.external_price_stale_seconds:
-                prices[product] = value
+            if isinstance(value, ExternalPrice):
+                if self._accept_price(value):
+                    prices[product] = value
             else:
-                LOGGER.warning("Kraken public trade request failed or source timestamp invalid",
-                               extra={"product": product,
-                                      "error": type(value).__name__ if isinstance(value, ExternalPrice)
-                                      else repr(value)})
+                self._log_failure(product, "kraken", value)
         return prices

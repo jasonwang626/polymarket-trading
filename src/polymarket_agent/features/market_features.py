@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from datetime import UTC, datetime, timedelta
 
@@ -14,6 +15,7 @@ from polymarket_agent.models import (
     Trade,
 )
 
+LOGGER = logging.getLogger(__name__)
 
 def _return(current: float | None, previous: float | None) -> float | None:
     if current is None or previous in (None, 0):
@@ -90,8 +92,22 @@ class FeatureEngine:
         issues: list[str] = []
         for label, book in (("YES", yes_book), ("NO", no_book)):
             age = (now - book.timestamp).total_seconds()
-            if not 0 <= age <= self.settings.scanner.orderbook_stale_seconds:
-                issues.append(f"{label} 委託簿時間過期或在未來")
+            limit = self.settings.scanner.orderbook_stale_seconds
+            reason = "future_timestamp" if age < 0 else "stale" if age > limit else "accepted"
+            LOGGER.info(
+                "Book timestamp market=%s outcome=%s synthetic=%s source=%s received=%s "
+                "age_seconds=%.6f limit_seconds=%s reason=%s",
+                market.market_id, label, book.synthetic, book.timestamp.isoformat(),
+                book.received_at.isoformat(), age, limit, reason,
+                extra={"market_id": market.market_id, "outcome": label, "synthetic": book.synthetic,
+                           "source_timestamp": book.timestamp.isoformat(),
+                           "received_at": book.received_at.isoformat(), "checked_at": now.isoformat(),
+                           "age_seconds": age, "max_age_seconds": limit, "reason": reason},
+            )
+            if age < 0:
+                issues.append(f"{label} 委託簿時間在未來（超前 {-age:.3f} 秒）")
+            elif age > limit:
+                issues.append(f"{label} 委託簿時間過期（{age:.1f} 秒；上限 {limit} 秒）")
             if book.mid is None:
                 issues.append(f"{label} 委託簿缺少雙邊報價或買賣價交叉")
             if book.state != "OPEN":

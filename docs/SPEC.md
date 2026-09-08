@@ -691,3 +691,10 @@ Phase 4 is successful when:
 - [Kraken Recent Trades](https://docs.kraken.com/api-reference/market-data/get-recent-trades)
 
 其餘功能章節描述後續目標；已實作範圍與驗收狀態以第 2 節、PLAN.md 和 IMPLEMENTATION_STATUS.md 為準。
+
+
+### 診斷補充（2026-09-08）
+
+外部價格驗收紀錄必須包含來源、商品、來源時間、接收時間、檢查時間、資料年齡與門檻；拒絕原因區分 stale、future_timestamp、timeout、transport_error、http_status_error、parse_or_validation_error。被拒絕的可解析價格保留診斷紀錄，不寫入有效外部價格表。原始時間欄位以限制長度的文字記錄供解析錯誤追查，不記錄完整回應或憑證。
+
+HTTP 成功不等同來源時間新鮮。委託簿紀錄需顯示來源時間與接收時間，衍生 NO 標記 synthetic；不以接收時間覆寫來源時間。畫面顯示最優價 1% 範圍內的 YES 買賣掛單美元金額，流動性拒絕理由列出每側門檻。時間與流動性門檻不因本次診斷更新而放寬。
