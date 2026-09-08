@@ -712,3 +712,14 @@ US 委託簿原始狀態保留於 raw_json；正規化為 OPEN、HALTED、CLOSED
 歷史外部價格查詢同時限制交易所來源時間與 received_at；來源時間早於查詢點但當時尚未收到的價格不得用於計算歷史特徵。FeatureEngine 以當次計算時間 available_at 作為接收截止；單獨呼叫歷史查詢未指定 available_at 時，以查詢 timestamp 為截止。缺少 received_at 的舊紀錄不建立當時可得性假設。
 
 提供不連網的 validate_capture 工具，以 SQLite mode=ro 與 query_only 開啟 schema v2，不升級或修改原始資料；產生 JSON 與 Markdown 報告。包含完整性、外鍵、觀測數、狀態、原生委託簿狀態、時間差、觀測間隔及重疊品質旗標。暫停等待須與實際行情快照分開計數。報告不由 SQLite 推測預期輪數或 HTTP 成功率，不將資料稽核宣稱為策略重播或損益回測。
+
+
+### 歷史行情品質重播（2026-09-08）
+
+重播 schema v2 的實際 market_snapshots 時點，逐筆依觀測時間排序，不補造未觀測輪數。市場規則版本須 observed_at <= as_of；委託簿須 received_at <= as_of；外部價格同時要求來源時間及接收時間 <= as_of。缺少當時規則或委託簿時輸出 UNDETERMINED，缺少接收時間的輸入列不建立可得性假設並計數。
+
+重播使用當前 FeatureEngine 與分類設定，歷史 mid 由已重播且通過品質檢查的快照逐筆建立，不讀取來源已計算的特徵／分類，不讀取事後 markets 最新規則。每筆事件保留 metadata/book 快照 ID、所用來源／接收時間與重新計算的特徵。記錄市場狀態及規則雜湊轉換、缺口與不可判定情況；這些事件不是實際退場或成交。
+
+價格政策明確標記 latest_received_price_at_recorded_observation：選取當時已收到的最新參考價格，允許沿用直到原有過期檢查拒絕。與即時 scanner 每輪只使用新請求結果的政策不同，因此不能宣稱精確還原原始決策，亦不修改即時 scanner 行為。即使已收到委託簿，來源時間在未來仍會被品質判斷拒絕。
+
+輸出 summary.json、events.jsonl、report.md；不得覆寫既有輸出。輸入唯讀、不連網、不產生訂單、部位、成交、BRTI 標籤或損益。

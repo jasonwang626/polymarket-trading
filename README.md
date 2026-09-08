@@ -108,3 +108,18 @@ uv run --frozen python scripts/validate_capture.py \
 已驗證的 Mac 樣本：
 - [一小時資料稽核](docs/validation/mac-hour/validation.md)
 - [自動同步時間後資料稽核](docs/validation/mac-clock-check/validation.md)
+
+
+## 歷史行情品質重播
+
+```bash
+uv run --frozen python scripts/replay_capture.py \
+  --database data/mac-hour.sqlite3 \
+  --output-dir reports/mac-hour-replay
+```
+
+輸出 `summary.json`、逐筆 `events.jsonl` 與 `report.md`，不連網或修改來源資料。規則、委託簿及參考價格均受當時可得時間限制，歷史特徵重新計算。缺少規則或委託簿時為 UNDETERMINED。
+
+重播可沿用當時已收到且未過期的最近參考價格；目前即時 scanner 每輪僅使用新請求結果。因此結果可能不同，這是明列的品質政策比較，並非策略獲利或精確原始決策還原。市場暫停等待沒有真實行情快照，不補造重播資料。
+
+實測摘要：[一小時品質重播](docs/replay/mac-hour/report.md)、[時鐘同步後品質重播](docs/replay/mac-clock-check/report.md)。

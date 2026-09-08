@@ -1,0 +1,162 @@
+{
+  "replay_version": 1,
+  "policy": "latest_received_price_at_recorded_observation",
+  "schedule": "market_snapshots; polling deferrals have no observation and are excluded",
+  "observations": 300,
+  "stored_decision_features": 300,
+  "statuses": {
+    "NO_TRADE": 300
+  },
+  "omitted_input_rows": {},
+  "max_within_market_observation_gap_seconds": 10.331466,
+  "state_or_rule_events": [
+    {
+      "market_id": "polymarket_us:cpc-btc-100k-09-30-2026",
+      "as_of": "2026-09-08T06:37:25.511401+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "a5c2d87869636ae7b3a0e73f3c885547babcc32ba5a7263137bc10361ba57897"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-100k-10-31-2026",
+      "as_of": "2026-09-08T06:37:25.743843+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "01cedc1e4be0d6875faf58897708526da9309d9faa11bc0334675eba1e8eff3a"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-100k-11-30-2026",
+      "as_of": "2026-09-08T06:37:25.932976+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "1fce5cf7df554813fea494040200a425330d0096d9d5e3b10c4d87b2cebe62e1"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-100k-12-31-2026",
+      "as_of": "2026-09-08T06:37:26.132994+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "a061de020fdc65d3eb5d18c748fdf1cd964e4ddf507d7d6391f3b15e83661bbd"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-150k-09-30-2026",
+      "as_of": "2026-09-08T06:37:26.343858+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "73540eb3d9cd28e95f354b0e2a3152f77bdfc71e17f145523e89c4b0a8da5cf5"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-150k-10-31-2026",
+      "as_of": "2026-09-08T06:37:26.572047+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "0c4c7361d1e0894c31dd73d967dba36074aa4a14e0fb65caa32623c714b12d4b"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-150k-11-30-2026",
+      "as_of": "2026-09-08T06:37:26.757939+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "OPEN",
+      "rule_hash": "4afde007340f3559e452feeba36f260028e83e3d3fbb17defb9e9fab11e093ed"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-150k-12-31-2026",
+      "as_of": "2026-09-08T06:37:26.983817+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "a2bdddb28ddb06b4399bac0159744845034ec56866349e1494d0b1826f4786d4"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-above-yr-12-31-2026-200k",
+      "as_of": "2026-09-08T06:37:27.130157+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "1e0f61a6f0eadee45a976b4289f605f49c311b32b96452d2f0c7c94154de0c65"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-hitprice-high-yr-12-31-2026-100k",
+      "as_of": "2026-09-08T06:37:27.343138+00:00",
+      "previous_state": null,
+      "previous_rule_hash": null,
+      "state": "HALTED",
+      "rule_hash": "a0ce6256612f5ac1341582ec2d6964e5d170e33870e1fbb5baedf14dc244680d"
+    },
+    {
+      "market_id": "polymarket_us:cpc-btc-150k-11-30-2026",
+      "as_of": "2026-09-08T06:37:36.231487+00:00",
+      "previous_state": "OPEN",
+      "previous_rule_hash": "4afde007340f3559e452feeba36f260028e83e3d3fbb17defb9e9fab11e093ed",
+      "state": "HALTED",
+      "rule_hash": "4afde007340f3559e452feeba36f260028e83e3d3fbb17defb9e9fab11e093ed"
+    }
+  ],
+  "settings": {
+    "api": {
+      "us_base_url": "https://gateway.polymarket.us",
+      "gamma_base_url": "https://gamma-api.polymarket.com",
+      "clob_base_url": "https://clob.polymarket.com",
+      "data_base_url": "https://data-api.polymarket.com",
+      "coinbase_base_url": "https://api.exchange.coinbase.com",
+      "kraken_base_url": "https://api.kraken.com",
+      "timeout_seconds": 12.0,
+      "external_request_budget_seconds": 3.0,
+      "user_agent": "polymarket-readonly-agent/0.1",
+      "retry_attempts": 3,
+      "retry_base_seconds": 0.5,
+      "public_requests_per_second": 5.0
+    },
+    "scanner": {
+      "halted_recheck_seconds": 60.0,
+      "refresh_seconds": 10.0,
+      "discovery_refresh_seconds": 300.0,
+      "market_page_size": 50,
+      "market_max_pages": 5,
+      "max_watchlist_size": 20,
+      "max_concurrency": 8,
+      "recent_trades_limit": 500,
+      "external_price_stale_seconds": 30,
+      "history_lookback_minutes": 20,
+      "orderbook_stale_seconds": 120,
+      "history_tolerance_seconds": 60
+    },
+    "filters": {
+      "crypto_keywords": [
+        "bitcoin",
+        "btc",
+        "ethereum",
+        "ether",
+        "eth",
+        "crypto"
+      ],
+      "min_liquidity_usd": 1000.0,
+      "min_volume_24h_usd": 100.0,
+      "min_hours_to_expiry": 0.05,
+      "max_hours_to_expiry": 8760.0,
+      "max_spread": 0.08,
+      "min_book_depth_usd": 100.0
+    },
+    "signals": {
+      "min_orderbook_imbalance": 0.6,
+      "max_orderbook_imbalance": 0.4,
+      "min_momentum_5m": 0.005,
+      "min_external_return_5m": 0.001,
+      "min_signal_score": 2
+    }
+  },
+  "limitations": [
+    "重播當時已收到的最新有效來源紀錄，可沿用既有價格直到過期；與原 scanner 每輪只用新請求的政策不同。",
+    "來源僅含當時有保存的價格，不重建被拒絕的請求，也不宣稱精確重現原始決策。",
+    "排程來自實際行情快照；暫停等待、未觀測期間及市場清單外資料不會被補造。",
+    "使用當前明列設定及分類程式；不使用來源資料庫的已算特徵、分類或事後最新市場規則。",
+    "狀態轉換是觀測事件，不是平倉或成交；無 BRTI 標籤、勝率、費用、交易或損益。"
+  ]
+}
