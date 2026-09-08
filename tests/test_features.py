@@ -28,7 +28,8 @@ def test_feature_engine_computes_spread_depth_volume_and_distance(tmp_path):
     )
     storage.upsert_market(market, now)
     old_external = ExternalPrice(
-        symbol="BTC-USD", timestamp=now - timedelta(minutes=6), price=60_000
+        symbol="BTC-USD", timestamp=now - timedelta(minutes=6),
+        received_at=now - timedelta(minutes=6), price=60_000
     )
     storage.insert_external_price(old_external)
     yes = OrderBook(

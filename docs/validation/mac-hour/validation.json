@@ -1,0 +1,255 @@
+{
+  "report_version": 1,
+  "schema_version": 2,
+  "integrity": [
+    "ok"
+  ],
+  "foreign_key_errors": 0,
+  "counts": {
+    "markets": 10,
+    "market_snapshots": 3600,
+    "orderbook_snapshots": 7200,
+    "external_prices": 693,
+    "features": 3600,
+    "market_metadata_snapshots": 3600,
+    "quote_history": 0
+  },
+  "window_start_utc": "2026-09-08T05:29:21.419564+00:00",
+  "window_end_utc": "2026-09-08T06:29:13.754241+00:00",
+  "statuses": {
+    "NO_TRADE": 2924,
+    "WATCH": 676
+  },
+  "markets": {
+    "polymarket_us:cpc-btc-100k-09-30-2026": {
+      "question": "When will Bitcoin cross $100k again? — Before October 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 173,
+        "book_stale": 173,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 8.847533,
+        "median": 10.005922,
+        "max": 11.514612
+      }
+    },
+    "polymarket_us:cpc-btc-100k-10-31-2026": {
+      "question": "When will Bitcoin cross $100k again? — Before November 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "external_missing_or_stale": 21,
+        "has_data_issues": 79,
+        "book_stale": 79
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 8.367774,
+        "median": 9.990037,
+        "max": 11.920925
+      }
+    },
+    "polymarket_us:cpc-btc-100k-11-30-2026": {
+      "question": "When will Bitcoin cross $100k again? — Before December 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 212,
+        "book_stale": 212,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 8.687485,
+        "median": 9.995354,
+        "max": 11.722555
+      }
+    },
+    "polymarket_us:cpc-btc-100k-12-31-2026": {
+      "question": "When will Bitcoin cross $100k again? — Before January 2027",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 150,
+        "book_stale": 150,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 8.242946,
+        "median": 10.007399,
+        "max": 12.152124
+      }
+    },
+    "polymarket_us:cpc-btc-150k-09-30-2026": {
+      "question": "When will Bitcoin hit $150k? — Before October 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 360,
+        "book_stale": 360,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 6.625007,
+        "median": 9.994868,
+        "max": 13.840602
+      }
+    },
+    "polymarket_us:cpc-btc-150k-10-31-2026": {
+      "question": "When will Bitcoin hit $150k? — Before November 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "external_missing_or_stale": 21,
+        "has_data_issues": 22,
+        "book_stale": 22
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 7.693516,
+        "median": 9.997043,
+        "max": 12.747204
+      }
+    },
+    "polymarket_us:cpc-btc-150k-11-30-2026": {
+      "question": "When will Bitcoin hit $150k? — Before December 2026",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 360
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 235,
+        "book_stale": 235,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 7.759189,
+        "median": 9.995599,
+        "max": 12.639998
+      }
+    },
+    "polymarket_us:cpc-btc-150k-12-31-2026": {
+      "question": "When will Bitcoin hit $150k? — Before January 2027",
+      "observations": 360,
+      "statuses": {
+        "WATCH": 339,
+        "NO_TRADE": 21
+      },
+      "quality_flags_overlapping": {
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 7.64232,
+        "median": 10.00372,
+        "max": 12.690919
+      }
+    },
+    "polymarket_us:cpc-btc-above-yr-12-31-2026-200k": {
+      "question": "Will Bitcoin be above ___ in 2026? — $200,000",
+      "observations": 360,
+      "statuses": {
+        "NO_TRADE": 174,
+        "WATCH": 186
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 167,
+        "book_stale": 167,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 4.683061,
+        "median": 10.005237,
+        "max": 15.332186
+      }
+    },
+    "polymarket_us:cpc-btc-above-yr-12-31-2026-250k": {
+      "question": "Will Bitcoin be above ___ in 2026? — $250,000",
+      "observations": 360,
+      "statuses": {
+        "WATCH": 151,
+        "NO_TRADE": 209
+      },
+      "quality_flags_overlapping": {
+        "has_data_issues": 199,
+        "book_stale": 199,
+        "external_missing_or_stale": 21
+      },
+      "observation_gap_seconds": {
+        "count": 359,
+        "min": 7.617916,
+        "median": 9.997959,
+        "max": 12.869115
+      }
+    }
+  },
+  "native_book_states": {
+    "MARKET_STATE_OPEN": 3600
+  },
+  "native_book_age_at_receipt_seconds": {
+    "count": 3600,
+    "min": 0.393547,
+    "median": 93.415007,
+    "max": 9056.158775
+  },
+  "missing_book_receipt_times": 0,
+  "external_counts": {
+    "BTC-USD/coinbase": 178,
+    "ETH-USD/coinbase": 277,
+    "ETH-USD/kraken": 77,
+    "BTC-USD/kraken": 161
+  },
+  "external_age_at_receipt_seconds": {
+    "BTC-USD/coinbase": {
+      "count": 178,
+      "min": -0.01686,
+      "median": 0.275984,
+      "max": 5.458825
+    },
+    "ETH-USD/coinbase": {
+      "count": 277,
+      "min": -0.009962,
+      "median": 1.067428,
+      "max": 9.160926
+    },
+    "ETH-USD/kraken": {
+      "count": 77,
+      "min": 0.071142,
+      "median": 5.40929,
+      "max": 27.463054
+    },
+    "BTC-USD/kraken": {
+      "count": 161,
+      "min": 0.019415,
+      "median": 2.058106,
+      "max": 27.622798
+    }
+  },
+  "missing_external_receipt_times": 0,
+  "limitations": [
+    "資料庫中的有效外部價格不包含被拒絕的來源回應；拒絕原因需搭配日誌。",
+    "觀測間隔不是網路延遲；資料庫不能證明預期輪數或 HTTP 成功率。",
+    "品質旗標可能重疊；暫停等待的特徵不是新行情快照。",
+    "這是已保存資料的品質稽核，不是策略重播、成交率或損益回測。"
+  ]
+}

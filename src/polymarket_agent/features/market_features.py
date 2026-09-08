@@ -144,7 +144,7 @@ class FeatureEngine:
             minutes: self.storage.external_price_at_or_before(
                 market.underlying, now - timedelta(minutes=minutes),
                 self.settings.scanner.history_tolerance_seconds,
-                venue=external.venue if external else None,
+                venue=external.venue if external else None, available_at=now,
             )
             if market.underlying
             else None

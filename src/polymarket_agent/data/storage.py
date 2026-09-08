@@ -384,7 +384,7 @@ class Storage:
 
     def external_price_at_or_before(
         self, symbol: str, timestamp: datetime, max_age_seconds: int = 60,
-        venue: str | None = None,
+        venue: str | None = None, available_at: datetime | None = None,
     ) -> float | None:
         with self.connect() as connection:
             row = connection.execute(
@@ -392,10 +392,12 @@ class Storage:
                 SELECT price FROM external_prices
                 WHERE symbol = ? AND timestamp <= ? AND timestamp >= ?
                     AND (? IS NULL OR venue = ?)
+                    AND received_at IS NOT NULL AND received_at <= ?
                 ORDER BY timestamp DESC LIMIT 1
                 """,
                 (symbol, timestamp.isoformat(),
-                 (timestamp - timedelta(seconds=max_age_seconds)).isoformat(), venue, venue),
+                 (timestamp - timedelta(seconds=max_age_seconds)).isoformat(), venue, venue,
+                 (available_at or timestamp).isoformat()),
             ).fetchone()
         return float(row["price"]) if row else None
 

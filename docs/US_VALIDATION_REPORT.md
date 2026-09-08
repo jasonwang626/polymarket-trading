@@ -119,3 +119,13 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 此次程式更新保留 HALTED/CLOSED/UNKNOWN 的差異，HALTED 每 60 秒重新讀取；中間掃描只保存明確標記未重新讀取的 NO_TRADE 特徵，不複製舊行情快照。成功恢復 OPEN 後清除等待排程，失敗重新檢查也等待再試。其他開放市場持續正常掃描。新增狀態解析、等待期間不製造快照、失敗後等待、恢復及固定歷史時間不受即時排程影響的測試。
 
 驗證：72 項測試通過；Python 編譯與 git diff --check 通過。本次 Ruff 執行器兩次以 segmentation fault 結束，未取得此次 lint 通過結果；先前 66 項版本的 lint 已通過。新版暫停輪詢尚待 Mac 公開 API 實測。
+
+
+## 自主開發驗證與 Sprint 2 基礎工作
+
+- 已定位先前 Ruff segmentation fault：本機 ELF 執行檔被截斷，檔案長度不足其區段標頭指定位置。重新安裝相同的鎖定版本 ruff 0.16.6 後恢復，沒有變更相依版本。最新 Ruff 全部通過。
+- 新增 validate_capture CLI，以只讀連線及 transaction 檢查 schema v2，不升級／寫入來源資料庫，拒絕覆寫既有報告。
+- 一小時樣本重現 3600 特徵、676 WATCH／2924 NO_TRADE；時鐘同步後樣本重現 300 NO_TRADE、299 原生 HALTED／1 OPEN。報告位於 docs/validation/mac-hour 及 mac-clock-check。資料庫觀測起迄與日誌啟停時間是不同指標，不混用。
+- 歷史外部價格新增 received_at 截止條件，阻擋晚到資料污染當時特徵；修正兩個原有測試中省略接收時間的合成 fixtures，並加入晚到與未知接收時間測試。
+- 額外使用已上傳的 10 個 HALTED 原始回應，配合合成外部價格做 4 輪離線整合驗證：初次讀取 10 次，中間兩輪不讀取，到期強制重新檢查再讀 10 次；合計 40 個委託簿快照（含衍生 NO）及 40 個決策特徵。這不是即時 API 或真實市場恢復驗收。
+- 最新完整測試 77 項通過，Ruff、Python 編譯與 diff 格式檢查通過。完整策略重播、標籤、勝率模型及成交／損益仍未建立，不啟用交易。

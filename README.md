@@ -89,3 +89,22 @@ uv run ruff check .
 詳見 [實作狀態](docs/IMPLEMENTATION_STATUS.md) 與 [美國版驗證報告](docs/US_VALIDATION_REPORT.md)。下一個階段先建立資料重播，再驗證勝率、風控與本機模擬交易；完整交易時段的穩定性仍需實際部署驗收。
 
 API 依據：[Polymarket US](https://docs.polymarket.us/api-reference/introduction)、[歷史資料](https://docs.polymarket.us/api-reference/price-history/get-price-history)、[Coinbase ticker](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-ticker)、[Kraken Recent Trades](https://docs.kraken.com/api-reference/market-data/get-recent-trades)。
+
+
+## 自動檢查已收集的資料
+
+停止掃描後，在專案目錄執行：
+
+```bash
+uv run --frozen python scripts/validate_capture.py \
+  --database data/mac-hour.sqlite3 \
+  --output-dir reports/mac-hour-validation
+```
+
+工具不連網、不改動資料庫；產生 `validation.md` 與 `validation.json`。若報告已存在，請使用新的 output-dir，避免混淆不同次測試。資料庫須為 schema v2；空資料會明確呈現空觀測期間。完整性檢查成功不等同行情新鮮、資料完整或策略可獲利。
+
+暫停市場等待期間仍有 NO_TRADE 決策特徵，但不會產生新的委託簿快照，因此特徵筆數與行情筆數可不同。報告保留此差異。
+
+已驗證的 Mac 樣本：
+- [一小時資料稽核](docs/validation/mac-hour/validation.md)
+- [自動同步時間後資料稽核](docs/validation/mac-clock-check/validation.md)
