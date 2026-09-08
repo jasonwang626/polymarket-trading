@@ -37,6 +37,7 @@ class ApiConfig(BaseModel):
 
 
 class ScannerConfig(BaseModel):
+    halted_recheck_seconds: float = Field(default=60, ge=10, le=3600)
     refresh_seconds: float = Field(default=10, ge=1)
     discovery_refresh_seconds: float = Field(default=300, ge=10)
     market_page_size: int = Field(default=100, ge=1, le=500)

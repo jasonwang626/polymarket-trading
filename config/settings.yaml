@@ -20,6 +20,7 @@ api:
   user_agent: polymarket-readonly-agent/0.1
 
 scanner:
+  halted_recheck_seconds: 60
   refresh_seconds: 10
   discovery_refresh_seconds: 300
   market_page_size: 50

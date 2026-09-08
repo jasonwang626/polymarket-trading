@@ -39,7 +39,8 @@ def parse_book(payload: dict[str, Any], market: Market) -> tuple[OrderBook, Orde
         received_at=received,
         bids=levels("bids"),
         asks=levels("offers"),
-        state="OPEN" if row.get("state") == "MARKET_STATE_OPEN" else "NOT_OPEN",
+        state={"MARKET_STATE_OPEN": "OPEN", "MARKET_STATE_HALTED": "HALTED",
+               "MARKET_STATE_CLOSED": "CLOSED"}.get(row.get("state"), "UNKNOWN"),
         raw=payload,
     )
 

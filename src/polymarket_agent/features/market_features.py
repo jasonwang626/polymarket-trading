@@ -91,6 +91,9 @@ class FeatureEngine:
         now = now or datetime.now(UTC)
         issues: list[str] = []
         for label, book in (("YES", yes_book), ("NO", no_book)):
+            if book.state != "OPEN":
+                state_label = {"HALTED": "暫停", "CLOSED": "關閉"}.get(book.state, "狀態未知")
+                issues.append(f"{label} 市場{state_label}（{book.state}）")
             age = (now - book.timestamp).total_seconds()
             limit = self.settings.scanner.orderbook_stale_seconds
             reason = "future_timestamp" if age < 0 else "stale" if age > limit else "accepted"
@@ -110,8 +113,6 @@ class FeatureEngine:
                 issues.append(f"{label} 委託簿時間過期（{age:.1f} 秒；上限 {limit} 秒）")
             if book.mid is None:
                 issues.append(f"{label} 委託簿缺少雙邊報價或買賣價交叉")
-            if book.state != "OPEN":
-                issues.append(f"{label} 市場未開放")
         yes_mid = yes_book.mid
         no_mid = no_book.mid
         spread = yes_book.spread

@@ -138,6 +138,9 @@ class Scanner:
         self.price_feed = price_feed
         self.feature_engine = FeatureEngine(settings, storage)
         self._watchlist: list[Market] = []
+        # Monotonic deadlines only affect live reads; explicit historical clocks
+        # must not inherit a live polling schedule.
+        self._halted_until: dict[str, float] = {}
         self._last_discovery: datetime | None = None
         self._semaphore = asyncio.Semaphore(settings.scanner.max_concurrency)
 
@@ -162,6 +165,9 @@ class Scanner:
                 self._last_discovery = None
                 raise
             self._last_discovery = now
+            active_ids = {market.market_id for market in self._watchlist}
+            self._halted_until = {key: value for key, value in self._halted_until.items()
+                                  if key in active_ids}
 
     async def scan_once(self, now: datetime | None = None) -> list[ScanResult]:
         await self._refresh_watchlist(now or datetime.now(UTC))
@@ -207,9 +213,39 @@ class Scanner:
         external_prices: dict[str, ExternalPrice],
         now: datetime | None,
     ) -> ScanResult:
+        loop = asyncio.get_running_loop()
+        if now is None and market.market_id in self._halted_until:
+            remaining = self._halted_until[market.market_id] - loop.time()
+            if remaining > 0:
+                stamp = datetime.now(UTC)
+                seconds = max((market.resolution_time - stamp).total_seconds(), 0)
+                reason = f"上次確認市場暫停；本輪未重新讀取，約 {remaining:.0f} 秒後檢查"
+                features = FeatureSnapshot(
+                    market_id=market.market_id, timestamp=stamp,
+                    seconds_to_expiry=seconds, minutes_to_expiry=seconds / 60,
+                    data_issues=[reason],
+                )
+                self.storage.upsert_market(market, stamp)
+                self.storage.insert_features(features, ScanStatus.NO_TRADE.value, -1_000_000)
+                LOGGER.info("Halted market polling deferred market=%s remaining_seconds=%.3f",
+                            market.market_id, remaining)
+                return ScanResult(market=market, features=features, status=ScanStatus.NO_TRADE,
+                                  rank_score=-1_000_000, reasons=[reason])
+            # Failed rechecks retain the cooldown, preventing repeated requests
+            # every cycle when a previously halted market's endpoint fails.
+            self._halted_until[market.market_id] = (
+                loop.time() + self.settings.scanner.halted_recheck_seconds
+            )
         async with self._semaphore:
             yes_book, no_book = await self.market_feed.get_market_books(market)
             trades = await self.market_feed.get_recent_trades(market)
+        if now is None:
+            if yes_book.state == "HALTED" or no_book.state == "HALTED":
+                self._halted_until[market.market_id] = (
+                    loop.time() + self.settings.scanner.halted_recheck_seconds
+                )
+            else:
+                self._halted_until.pop(market.market_id, None)
 
         # Live observations arrive after the cycle starts. Historical callers may
         # supply a fixed as-of clock; they must never ingest observations after it.
@@ -278,7 +314,10 @@ def print_results(results: list[ScanResult]) -> None:
         print(f"Spread    {_fmt_float(f.spread)}")
         print(f"Volume5m  {_fmt_money(f.volume_5m)}")
         print(f"VolAccel  {_fmt_float(f.volume_acceleration, 2)}x")
-        print(f"Depth USD 買方 ${f.bid_depth_usd:,.2f} / 賣方 ${f.ask_depth_usd:,.2f}")
+        if f.polymarket_yes_mid is None:
+            print("Depth USD —（本輪無有效雙邊報價）")
+        else:
+            print(f"Depth USD 買方 ${f.bid_depth_usd:,.2f} / 賣方 ${f.ask_depth_usd:,.2f}")
         print(f"OB Imbal  {_fmt_float(f.orderbook_imbalance, 2)}")
         print(f"{f.external_symbol or 'Spot':<9} {_fmt_money(f.external_spot)} / 5m {_fmt_pct(f.external_return_5m)}")
         print(f"Signal    {result.status.value}")

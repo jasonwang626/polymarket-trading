@@ -106,3 +106,16 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 修正：終端機及 JSONL 記錄可解析價格的來源、接收與檢查時間、年齡、門檻及 accepted/stale/future_timestamp；請求失敗另區分逾時、HTTP、傳輸及解析驗證錯誤。記錄有限長度的原始時間欄位。委託簿診斷與原有 HTTP 回應紀錄分開；畫面新增 USD 買賣深度及流動性拒絕門檻。來源時間與既有交易阻擋條件不變。
 
 修正後鎖定環境完整測試 66 項通過，Ruff 與 git diff --check 通過。新增診斷尚待新版 Mac 實測；未宣稱一小時或整日穩定性已通過。
+
+
+## Mac 一小時、時鐘同步與暫停處理補充
+
+使用者上傳 mac-hour.log、mac-hour.sqlite3、scanner.jsonl：完成 360 輪、3600 筆特徵，運行 3593.399 秒；4597 個 HTTP 回應全為 200，市場讀取失敗 0，資料庫完整性與外鍵通過。BTC 有效 339/360 輪，ETH 354/360；676 WATCH、2924 NO_TRADE。292 次價格拒絕均為 future_timestamp，最大超前 1.116381 秒；BTC 最長連續缺失 2 輪。
+
+使用者確認 Mac 原未啟用自動日期時間，開啟後再上傳 mac-clock-check.log 與 SQLite：完成 30 輪、300 筆特徵，361 個 HTTP 回應全為 200，BTC/ETH 各 30 筆 Coinbase 價格，無警告或備援；完整性與外鍵通過。支持時鐘偏差解釋，但前後測試時間長度不同，尚非長期驗收。未調整價格時間容許範圍。
+
+後一次測試的 300 筆原生委託簿中，299 筆原始 state=MARKET_STATE_HALTED、1 筆 OPEN；不是網路錯誤。暫停原因及恢復時間無法由檔案判定。
+
+此次程式更新保留 HALTED/CLOSED/UNKNOWN 的差異，HALTED 每 60 秒重新讀取；中間掃描只保存明確標記未重新讀取的 NO_TRADE 特徵，不複製舊行情快照。成功恢復 OPEN 後清除等待排程，失敗重新檢查也等待再試。其他開放市場持續正常掃描。新增狀態解析、等待期間不製造快照、失敗後等待、恢復及固定歷史時間不受即時排程影響的測試。
+
+驗證：72 項測試通過；Python 編譯與 git diff --check 通過。本次 Ruff 執行器兩次以 segmentation fault 結束，未取得此次 lint 通過結果；先前 66 項版本的 lint 已通過。新版暫停輪詢尚待 Mac 公開 API 實測。
