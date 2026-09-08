@@ -8,7 +8,7 @@ __pycache__/
 *.sqlite3-shm
 *.sqlite3-wal
 logs/*.jsonl
+captures/
 dist/
 build/
 *.egg-info/
-

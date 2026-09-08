@@ -152,6 +152,8 @@ Persistence:
 - Store timestamped snapshots.
 - Never overwrite raw snapshots.
 - Maintain normalized tables for analysis.
+- 長時間收集須使用有界的 capture session。每次使用全新目錄，啟動時保存設定與執行環境，結束時保存停止原因、輪次統計、SQLite 唯讀稽核及所有成品的 SHA-256。
+- 已存在的 session 目錄不得重用；正常、部分錯誤及人工中止必須可區分。封存前將 WAL 合併回主資料庫，使單一 SQLite 檔可攜且可驗證。
 
 ---
 

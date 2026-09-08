@@ -4,6 +4,7 @@ import asyncio
 import logging
 import math
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -23,6 +24,18 @@ from polymarket_agent.models import (
 )
 
 LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RunSummary:
+    started_at: datetime
+    ended_at: datetime
+    attempted_cycles: int
+    successful_cycles: int
+    failed_cycles: int
+    result_count: int
+    market_failures: int
+    stop_reason: str
 
 
 class DiscoverySource(Protocol):
@@ -142,6 +155,7 @@ class Scanner:
         # must not inherit a live polling schedule.
         self._halted_until: dict[str, float] = {}
         self._last_discovery: datetime | None = None
+        self._last_market_failures = 0
         self._semaphore = asyncio.Semaphore(settings.scanner.max_concurrency)
 
     async def close(self) -> None:
@@ -177,6 +191,7 @@ class Scanner:
 
         tasks = [self._scan_market(market, external_prices, now) for market in self._watchlist]
         raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+        self._last_market_failures = sum(isinstance(item, Exception) for item in raw_results)
         results: list[ScanResult] = []
         for market, item in zip(self._watchlist, raw_results, strict=True):
             if isinstance(item, Exception):
@@ -203,7 +218,7 @@ class Scanner:
         LOGGER.info(
             "Scan cycle completed",
             extra={"market_count": len(results),
-                   "failed_count": sum(isinstance(x, Exception) for x in raw_results)},
+                   "failed_count": self._last_market_failures},
         )
         return results
 
@@ -270,21 +285,58 @@ class Scanner:
             reasons=reasons,
         )
 
-    async def run_forever(self, max_cycles: int | None = None) -> None:
-        cycles = 0
-        while max_cycles is None or cycles < max_cycles:
-            started = asyncio.get_running_loop().time()
+    async def run_forever(
+        self,
+        max_cycles: int | None = None,
+        max_duration_seconds: float | None = None,
+    ) -> RunSummary:
+        if max_cycles is not None and max_cycles < 1:
+            raise ValueError("max_cycles must be positive")
+        if max_duration_seconds is not None and max_duration_seconds <= 0:
+            raise ValueError("max_duration_seconds must be positive")
+        loop = asyncio.get_running_loop()
+        started_at = datetime.now(UTC)
+        deadline = loop.time() + max_duration_seconds if max_duration_seconds is not None else None
+        attempted = successful = failed = result_count = market_failures = 0
+        stop_reason = "max_cycles"
+        while max_cycles is None or attempted < max_cycles:
+            if deadline is not None and loop.time() >= deadline:
+                stop_reason = "duration"
+                break
+            cycle_started = loop.time()
+            attempted += 1
             try:
                 results = await self.scan_once()
                 print_results(results)
+                successful += 1
+                result_count += len(results)
+                market_failures += self._last_market_failures
             except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+                failed += 1
                 LOGGER.warning("Scan cycle failed; retrying on next cycle",
                                extra={"error": repr(exc)})
-            cycles += 1
-            if max_cycles is not None and cycles >= max_cycles:
+            if max_cycles is not None and attempted >= max_cycles:
+                stop_reason = "max_cycles"
                 break
-            elapsed = asyncio.get_running_loop().time() - started
-            await asyncio.sleep(max(self.settings.scanner.refresh_seconds - elapsed, 0))
+            elapsed = loop.time() - cycle_started
+            sleep_seconds = max(self.settings.scanner.refresh_seconds - elapsed, 0)
+            if deadline is not None:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    stop_reason = "duration"
+                    break
+                sleep_seconds = min(sleep_seconds, remaining)
+            await asyncio.sleep(sleep_seconds)
+        return RunSummary(
+            started_at=started_at,
+            ended_at=datetime.now(UTC),
+            attempted_cycles=attempted,
+            successful_cycles=successful,
+            failed_cycles=failed,
+            result_count=result_count,
+            market_failures=market_failures,
+            stop_reason=stop_reason,
+        )
 
 
 def _fmt_money(value: float | None) -> str:

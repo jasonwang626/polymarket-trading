@@ -170,3 +170,12 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 完成官方文件查核與 collect_settlement_evidence.py，來源、存取條件、實測限制記於 [SETTLEMENT_DATA_REVIEW.md](SETTLEMENT_DATA_REVIEW.md)。新增 GET settlement 限定路徑、原始 JSON／時間／hash 保存、商品／規則／候選值檢查；所有候選均維持未驗證，不啟用訓練。
 
 完整 102 項測試通過；Ruff、Python 編譯與 diff 檢查通過。真實公開 endpoint 探測 8 秒 ReadTimeout；未取得真實已結算 BTC 樣本，合成成功回應測試不能替代連通性與標籤驗收。BRTI 授權存取與正式結果驗收仍未完成。
+
+
+## 有界資料收集工作階段驗證
+
+新增 `polymarket-capture`，要求以輪數或時間指定唯一停止條件，並拒絕已存在的輸出目錄。啟動清單保存唯讀／離線狀態、完整生效設定、設定雜湊、Python／平台／套件版本及可取得時的 Git revision；完成清單區分 completed、completed_with_errors、cancelled，保存輪次、單一市場錯誤、稽核摘要與成品 SHA-256。封存時將 SQLite WAL 合併並切回 DELETE journal，使主資料庫不依賴 sidecar 檔案。
+
+離線命令列煙霧測試完成 2/2 輪、2 筆 WATCH，資料庫 integrity_check=ok、外鍵錯誤 0；所有清單雜湊重算一致。自動測試另涵蓋既有目錄拒絕且原檔不變、輪數／時間參數互斥、時間截止停止、Ctrl-C 取消後仍封存、WAL／SHM 不殘留。完整 107 項測試、Ruff、Python 編譯及 diff 格式檢查通過。
+
+這項功能只改善資料證據與長時間操作的可追溯性，沒有建立勝率、交易標籤、成交或損益。下一個部署驗收仍是使用者 Mac 的完整交易時段 session，之後才累積連續 30 天資料。

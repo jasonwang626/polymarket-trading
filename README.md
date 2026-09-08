@@ -30,6 +30,25 @@ uv run python scripts/run_scanner.py --cycles 3 --max-markets 3 --database data/
 
 日誌寫入 `logs/scanner.jsonl`。單一合約讀取失敗會記錄 `NO_TRADE`；暫時性市場搜尋失敗會於下一輪重試。資料庫故障不會被當成正常行情略過。
 
+## 建議的長時間收集方式
+
+長時間驗收請使用有界的 capture session，而不是手動共用同一個資料庫。輸出目錄必須尚不存在：
+
+```bash
+uv run --frozen polymarket-capture \
+  captures/2026-09-09-session-01 \
+  --duration-minutes 480 \
+  --max-markets 10
+```
+
+離線快速驗證：
+
+```bash
+uv run --frozen polymarket-capture captures/offline-check --cycles 2 --offline
+```
+
+每次 session 會保存 `session-start.json`、`capture.sqlite3`、`scanner.jsonl`、`audit.json`、`AUDIT.md` 與完成後的 `session.json`。最終清單包含停止原因、成功／失敗輪數、單一市場失敗數、資料庫健康摘要及檔案 SHA-256。工具拒絕重用既有目錄；Ctrl-C 中止仍會封存並標記 `cancelled`。`healthy=true` 只表示收集與資料完整性檢查通過，不代表策略有獲利能力。
+
 ## 歷史報價收集
 
 已提供逐日切分的公開歷史收集工具，日期為 UTC，起始日包含、結束日不包含：
@@ -86,7 +105,7 @@ uv run pytest -q
 uv run ruff check .
 ```
 
-詳見 [實作狀態](docs/IMPLEMENTATION_STATUS.md) 與 [美國版驗證報告](docs/US_VALIDATION_REPORT.md)。下一個階段先建立資料重播，再驗證勝率、風控與本機模擬交易；完整交易時段的穩定性仍需實際部署驗收。
+詳見 [實作狀態](docs/IMPLEMENTATION_STATUS.md) 與 [美國版驗證報告](docs/US_VALIDATION_REPORT.md)。資料重播與 session 封存已具備；下一個證據門檻是完整交易時段及 30 天連續資料，再驗證勝率、風控與本機模擬交易。
 
 API 依據：[Polymarket US](https://docs.polymarket.us/api-reference/introduction)、[歷史資料](https://docs.polymarket.us/api-reference/price-history/get-price-history)、[Coinbase ticker](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-ticker)、[Kraken Recent Trades](https://docs.kraken.com/api-reference/market-data/get-recent-trades)。
 

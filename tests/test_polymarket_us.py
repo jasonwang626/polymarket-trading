@@ -360,8 +360,12 @@ async def test_loop_survives_discovery_failure_and_honors_cancellation(store):
 
     scanner.scan_once = transient
     scanner.settings.scanner.refresh_seconds = 0
-    await scanner.run_forever(max_cycles=2)
+    summary = await scanner.run_forever(max_cycles=2)
     assert calls == 2
+    assert summary.attempted_cycles == 2
+    assert summary.successful_cycles == 1
+    assert summary.failed_cycles == 1
+    assert summary.stop_reason == "max_cycles"
 
     async def cancel():
         raise asyncio.CancelledError()

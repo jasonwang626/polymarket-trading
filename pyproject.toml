@@ -23,6 +23,7 @@ dev = [
 
 [project.scripts]
 polymarket-scanner = "polymarket_agent.cli:main"
+polymarket-capture = "polymarket_agent.session:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/polymarket_agent"]
