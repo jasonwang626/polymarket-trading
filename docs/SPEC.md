@@ -732,3 +732,10 @@ build_dataset_manifest 以當時可取得的 metadata 快照中的 event.slug �
 使用者須事先指定含時區的 train-end、validation-end；訓練與驗證的整組觀測時間、最大 resolution_time 均須早於對應截止。每個邊界後預設保留 86400 秒 embargo；跨界或碰到隔離期間的事件整組排除，不隨機拆觀測列。此保守做法可能排除大量中長天期合約，不能為增加資料量而悄悄改變邊界。不同事件仍可能因同屬 BTC 而相關，不宣稱統計獨立。
 
 目前尚未接入經驗證的正式結算或 BRTI 標籤，所有列 label=null、label_status=unverified、eligible_for_supervised_training=false。不得從最後價格、closed、HALTED 或觸價猜測建立 0/1 標籤。清單完成不代表模型訓練準備度通過。
+
+
+### 公開結算證據（2026-09-08）
+
+新增固定 GET /v1/markets/cpc-btc-{...}/settlement 至公開路徑允許清單；不開放訂單或帳戶端點。保存市場規則回應與 settlement 回應的 canonical JSON、來源 URL、請求／接收時間及 SHA-256。公開存取失敗不得當作 No 結果；401／403／451 不重試或換路徑規避。批次最多 20 個不重複 BTC slug，輸出目錄須為新目錄。
+
+候選結算值需 finite、介於 0 與 1，布林與不合法型別拒絕，非二元值標記特殊結算。商品、規則、hash、來源與時間均驗證；但 hash 不是官方簽章。尚未完成真實已結算 BTC 樣本與特殊條款／結果可得時間驗收，所以即使候選值為 0 或 1 也保持 label=null、unverified，不接入可訓練標籤。詳細依據見 SETTLEMENT_DATA_REVIEW.md。

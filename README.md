@@ -140,3 +140,16 @@ uv run --frozen python scripts/build_dataset_manifest.py \
 輸出 `summary.json`、`manifest.jsonl` 及 `report.md`，不修改原始資料。相同事件／市場的關聯群組不跨資料集，預設邊界後隔離 24 小時，訓練／驗證也限制結果觀察截止。缺少事件身分或跨界的群組會排除。
 
 目前沒有經驗證的結果標籤，因此所有資料皆不可用於監督式訓練。此工具不從價格或市場暫停推斷輸贏。樣本結果見 [Mac 一小時分組清單摘要](docs/datasets/mac-hour/report.md)。
+
+
+## 收集公開結算證據
+
+```bash
+uv run --frozen python scripts/collect_settlement_evidence.py \
+  --slug cpc-btc-100k-09-30-2026 \
+  --output-dir reports/settlement-evidence
+```
+
+此 slug 僅為已知合約示例，不代表它已結算。可重複提供 --slug（最多 20 個不重複商品）；輸出目錄必須不存在。收集不需要交易帳戶或金鑰；不連接 BRTI 授權服務。
+
+輸出保留官方 GET 回應的 JSON、取得時間、完整性 hash 與驗證原因。candidate_payout 不是模型標籤；目前所有結果仍不可訓練。連線失敗也會保存原因並以非零狀態結束。詳見 [結算資料查核](docs/SETTLEMENT_DATA_REVIEW.md)。

@@ -163,3 +163,10 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 全部群組的結果觀察截止晚於 train-end，因此整組排除；不為湊出可訓練樣本而隨機切分。每組都是同事件的多個合約，兩份資料分開稽核，不宣稱 7 個互相獨立事件。群組摘要位於 docs/datasets，完整 manifest.jsonl 可由 CLI 重建。
 
 完整 88 項測試通過，Ruff／Python 編譯／diff 檢查通過；新增測試涵蓋門檻合約同組、事件改名傳遞合併、embargo、結果時點跨界、缺失身分隔離、外來未驗證標籤不能開啟訓練、唯讀與 as-of 規則版本。正式結算／BRTI 標籤、模型及交易仍未接入。
+
+
+## 公開結算證據收集驗證
+
+完成官方文件查核與 collect_settlement_evidence.py，來源、存取條件、實測限制記於 [SETTLEMENT_DATA_REVIEW.md](SETTLEMENT_DATA_REVIEW.md)。新增 GET settlement 限定路徑、原始 JSON／時間／hash 保存、商品／規則／候選值檢查；所有候選均維持未驗證，不啟用訓練。
+
+完整 102 項測試通過；Ruff、Python 編譯與 diff 檢查通過。真實公開 endpoint 探測 8 秒 ReadTimeout；未取得真實已結算 BTC 樣本，合成成功回應測試不能替代連通性與標籤驗收。BRTI 授權存取與正式結果驗收仍未完成。

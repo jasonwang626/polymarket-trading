@@ -38,7 +38,7 @@ class PublicAPI:
 
     async def get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if path not in {"/v1/search", "/v1/price-history"} and not re.fullmatch(
-            r"/v1/(?:markets/[a-zA-Z0-9_-]+/book|market/slug/cpc-btc-[a-zA-Z0-9_-]+)", path
+            r"/v1/(?:markets/[a-zA-Z0-9_-]+/book|markets/cpc-btc-[a-zA-Z0-9_-]+/settlement|market/slug/cpc-btc-[a-zA-Z0-9_-]+)", path
         ):
             raise ValueError("Only public market GET routes are allowed")
         attempts = self.settings.api.retry_attempts
