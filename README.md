@@ -123,3 +123,20 @@ uv run --frozen python scripts/replay_capture.py \
 重播可沿用當時已收到且未過期的最近參考價格；目前即時 scanner 每輪僅使用新請求結果。因此結果可能不同，這是明列的品質政策比較，並非策略獲利或精確原始決策還原。市場暫停等待沒有真實行情快照，不補造重播資料。
 
 實測摘要：[一小時品質重播](docs/replay/mac-hour/report.md)、[時鐘同步後品質重播](docs/replay/mac-clock-check/report.md)。
+
+
+## 事件分組與模型資料準備度
+
+以下日期僅示範如何對目前 Mac 樣本驗證切分阻擋條件，不是已選定的模型實驗設計：
+
+```bash
+uv run --frozen python scripts/build_dataset_manifest.py \
+  --database data/mac-hour.sqlite3 \
+  --train-end 2026-09-09T00:00:00Z \
+  --validation-end 2026-09-11T00:00:00Z \
+  --output-dir reports/mac-dataset-manifest
+```
+
+輸出 `summary.json`、`manifest.jsonl` 及 `report.md`，不修改原始資料。相同事件／市場的關聯群組不跨資料集，預設邊界後隔離 24 小時，訓練／驗證也限制結果觀察截止。缺少事件身分或跨界的群組會排除。
+
+目前沒有經驗證的結果標籤，因此所有資料皆不可用於監督式訓練。此工具不從價格或市場暫停推斷輸贏。樣本結果見 [Mac 一小時分組清單摘要](docs/datasets/mac-hour/report.md)。

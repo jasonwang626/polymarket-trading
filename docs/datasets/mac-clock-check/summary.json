@@ -1,0 +1,88 @@
+{
+  "manifest_version": 1,
+  "train_end_exclusive": "2026-09-09T00:00:00+00:00",
+  "validation_end_exclusive": "2026-09-11T00:00:00+00:00",
+  "embargo_seconds": 86400,
+  "observations": 300,
+  "groups": [
+    {
+      "group_id": "2be3c09a9595a6efca71",
+      "event_ids": [
+        "polymarket_us:btc-150k"
+      ],
+      "market_ids": [
+        "polymarket_us:cpc-btc-150k-09-30-2026",
+        "polymarket_us:cpc-btc-150k-10-31-2026",
+        "polymarket_us:cpc-btc-150k-11-30-2026",
+        "polymarket_us:cpc-btc-150k-12-31-2026"
+      ],
+      "observations": 120,
+      "first_observed": "2026-09-08T06:37:26.343858+00:00",
+      "last_observed": "2026-09-08T06:42:16.454490+00:00",
+      "max_resolution_time": "2027-01-01T05:00:00+00:00",
+      "split": "excluded",
+      "reason": "outcome_horizon_crosses_train_end"
+    },
+    {
+      "group_id": "437275e1f14b8a9dc8d4",
+      "event_ids": [
+        "polymarket_us:btc-above-yr-12-31-2026"
+      ],
+      "market_ids": [
+        "polymarket_us:cpc-btc-above-yr-12-31-2026-200k"
+      ],
+      "observations": 30,
+      "first_observed": "2026-09-08T06:37:27.130157+00:00",
+      "last_observed": "2026-09-08T06:42:16.641815+00:00",
+      "max_resolution_time": "2027-01-01T05:00:00+00:00",
+      "split": "excluded",
+      "reason": "outcome_horizon_crosses_train_end"
+    },
+    {
+      "group_id": "8fdfa5e9e5165bde14ab",
+      "event_ids": [
+        "polymarket_us:btc-hitprice-high-yr-12-31-2026"
+      ],
+      "market_ids": [
+        "polymarket_us:cpc-btc-hitprice-high-yr-12-31-2026-100k"
+      ],
+      "observations": 30,
+      "first_observed": "2026-09-08T06:37:27.343138+00:00",
+      "last_observed": "2026-09-08T06:42:16.845772+00:00",
+      "max_resolution_time": "2027-01-01T05:00:00+00:00",
+      "split": "excluded",
+      "reason": "outcome_horizon_crosses_train_end"
+    },
+    {
+      "group_id": "a8ec9cb186d0ba70003d",
+      "event_ids": [
+        "polymarket_us:btc-100k"
+      ],
+      "market_ids": [
+        "polymarket_us:cpc-btc-100k-09-30-2026",
+        "polymarket_us:cpc-btc-100k-10-31-2026",
+        "polymarket_us:cpc-btc-100k-11-30-2026",
+        "polymarket_us:cpc-btc-100k-12-31-2026"
+      ],
+      "observations": 120,
+      "first_observed": "2026-09-08T06:37:25.511401+00:00",
+      "last_observed": "2026-09-08T06:42:15.682035+00:00",
+      "max_resolution_time": "2027-01-01T05:00:00+00:00",
+      "split": "excluded",
+      "reason": "outcome_horizon_crosses_train_end"
+    }
+  ],
+  "split_counts": {
+    "excluded": 300
+  },
+  "verified_labels": 0,
+  "ready_for_training": false,
+  "limitations": [
+    "只建立資料切分清單，不訓練模型、不生成勝率或交易。",
+    "沒有驗證過的 BRTI 或正式結算標籤；closed、HALTED、最後價格均不當作結果標籤。",
+    "同一事件及同一市場的事件身分變更採傳遞合併，不跨資料集；缺少事件身分的群組隔離。",
+    "訓練／驗證同時限制觀測時間與最大結果觀察截止，並保留邊界後 embargo；跨界群組整組排除。",
+    "不同事件仍可能共享 BTC 風險與重疊觀察期；事件分組不保證統計獨立。",
+    "邊界須預先指定；不能依後續模型表現反覆調整以挑選有利結果。"
+  ]
+}

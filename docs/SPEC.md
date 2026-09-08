@@ -723,3 +723,12 @@ US 委託簿原始狀態保留於 raw_json；正規化為 OPEN、HALTED、CLOSED
 價格政策明確標記 latest_received_price_at_recorded_observation：選取當時已收到的最新參考價格，允許沿用直到原有過期檢查拒絕。與即時 scanner 每輪只使用新請求結果的政策不同，因此不能宣稱精確還原原始決策，亦不修改即時 scanner 行為。即使已收到委託簿，來源時間在未來仍會被品質判斷拒絕。
 
 輸出 summary.json、events.jsonl、report.md；不得覆寫既有輸出。輸入唯讀、不連網、不產生訂單、部位、成交、BRTI 標籤或損益。
+
+
+### 事件分組、時間切分與標籤準備度（2026-09-08）
+
+build_dataset_manifest 以當時可取得的 metadata 快照中的 event.slug 建立事件身分，市場與事件做傳遞合併，涵蓋同事件不同門檻及同市場的事件名稱變更。同一群組不得出現在多個資料集；任一成員缺少當時事件身分則隔離整個連通群組，不用事後事件名稱補填過去。分組可利用完整樣本中的身分關係防止切分洩漏，不能當作預測特徵。
+
+使用者須事先指定含時區的 train-end、validation-end；訓練與驗證的整組觀測時間、最大 resolution_time 均須早於對應截止。每個邊界後預設保留 86400 秒 embargo；跨界或碰到隔離期間的事件整組排除，不隨機拆觀測列。此保守做法可能排除大量中長天期合約，不能為增加資料量而悄悄改變邊界。不同事件仍可能因同屬 BTC 而相關，不宣稱統計獨立。
+
+目前尚未接入經驗證的正式結算或 BRTI 標籤，所有列 label=null、label_status=unverified、eligible_for_supervised_training=false。不得從最後價格、closed、HALTED 或觸價猜測建立 0/1 標籤。清單完成不代表模型訓練準備度通過。
