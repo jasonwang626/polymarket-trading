@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,7 @@ async def test_offline_scan_persists_complete_cycle(tmp_path):
         OfflinePriceFeed(),
     )
 
-    results = await scanner.scan_once(datetime.now(UTC))
+    results = await scanner.scan_once()
     await scanner.close()
 
     assert len(results) == 1
@@ -36,6 +35,8 @@ async def test_offline_scan_persists_complete_cycle(tmp_path):
     assert counts["market_snapshots"] == 1
     assert counts["orderbook_snapshots"] == 2
     assert counts["external_prices"] == 2
-    assert counts["market_trades"] == 5
+    assert counts["market_trades"] == 0
+    assert results[0].market.venue == "polymarket_us"
+    assert results[0].features.volume_5m is None
+    assert results[0].status.value == "WATCH"
     assert counts["features"] == 1
-

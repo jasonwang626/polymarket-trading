@@ -1,0 +1,703 @@
+{
+  "events": [
+    {
+      "title": "Will Bitcoin be above ___ in 2026?",
+      "slug": "btc-above-yr-12-31-2026",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "269271",
+          "question": "Will Bitcoin be above ___ in 2026?",
+          "slug": "cpc-btc-above-yr-12-31-2026-200k",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T17:34:15Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is above the price specified in the title at any point after the creation of this market and before 12:00 AM ET on January 1, 2027. Otherwise, this market will settle to No.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over any sixty second period, excluding the top 20% and bottom 20% of values. If this trimmed mean exceeds the price specified in the title at any point during the measurement period, the market settles to Yes.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T17:34:15Z",
+          "updatedAt": "2026-09-08T01:57:43Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-21T16:56:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "538106",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-above-yr-12-31-2026-200k",
+              "createdAt": "2026-07-21T17:34:15Z",
+              "updatedAt": "2026-07-21T17:34:15Z",
+              "description": "Yes",
+              "price": "0.0300",
+              "marketId": 269271,
+              "long": true,
+              "quote": {
+                "value": "0.0500",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "538107",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-above-yr-12-31-2026-200k",
+              "createdAt": "2026-07-21T17:34:15Z",
+              "updatedAt": "2026-07-21T17:34:15Z",
+              "description": "No",
+              "price": "0.0500",
+              "marketId": 269271,
+              "long": false,
+              "quote": {
+                "value": "0.97",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0.0300\",\"0.0500\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "$200,000",
+          "feeCoefficient": 0.06,
+          "sortOrder": 1,
+          "bestBidQuote": {
+            "value": "0.0300",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0500",
+            "currency": "USD"
+          },
+          "titleShort": "$200,000",
+          "ep3SyncedAt": "2026-09-08T01:57:43Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    },
+    {
+      "title": "When will Bitcoin cross $100k again?",
+      "slug": "btc-100k",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "268834",
+          "question": "When will Bitcoin cross $100k again?",
+          "slug": "cpc-btc-100k-09-30-2026",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T16:17:25Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is above $100,000.00 at any point after the creation of this market and before 12:00 AM ET on October 1, 2026.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over any sixty second period, excluding the top 20% and bottom 20% of values. If this trimmed mean crosses the threshold at any point, the market settles to Yes. Otherwise, the market settles to No.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T16:17:25Z",
+          "updatedAt": "2026-09-08T02:53:36Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-13T19:40:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "537232",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-100k-09-30-2026",
+              "createdAt": "2026-07-21T16:17:25Z",
+              "updatedAt": "2026-07-21T16:17:25Z",
+              "description": "Yes",
+              "price": "0.0500",
+              "marketId": 268834,
+              "long": true,
+              "quote": {
+                "value": "0.0600",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "537233",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-100k-09-30-2026",
+              "createdAt": "2026-07-21T16:17:25Z",
+              "updatedAt": "2026-07-21T16:17:25Z",
+              "description": "No",
+              "price": "0.0600",
+              "marketId": 268834,
+              "long": false,
+              "quote": {
+                "value": "0.95",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0.0500\",\"0.0600\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "Before October 2026",
+          "feeCoefficient": 0.06,
+          "sortOrder": 1,
+          "bestBidQuote": {
+            "value": "0.0500",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0600",
+            "currency": "USD"
+          },
+          "titleShort": "Before October 2026",
+          "ep3SyncedAt": "2026-09-08T01:57:50Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    },
+    {
+      "title": "How low will Bitcoin get this year?",
+      "slug": "btc-hitprice-low-yr-12-31-2026",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "268682",
+          "question": "How low will Bitcoin get this year?",
+          "slug": "cpc-btc-hitprice-low-yr-12-31-2026-55k",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T15:49:10Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is below $55,000.00 at any point from the creation of this market until 12:00 AM ET on January 1, 2027.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over any sixty second period, excluding the top 20% and bottom 20% of values. If this trimmed mean crosses the threshold at any point, the market settles to Yes. Otherwise, the market settles to No.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T15:49:11Z",
+          "updatedAt": "2026-09-08T02:06:30Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-10T15:53:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "536928",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-hitprice-low-yr-12-31-2026-55k",
+              "createdAt": "2026-07-21T15:49:11Z",
+              "updatedAt": "2026-07-21T15:49:11Z",
+              "description": "Yes",
+              "price": "0.2300",
+              "marketId": 268682,
+              "long": true,
+              "quote": {
+                "value": "0.2400",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "536929",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-hitprice-low-yr-12-31-2026-55k",
+              "createdAt": "2026-07-21T15:49:11Z",
+              "updatedAt": "2026-07-21T15:49:11Z",
+              "description": "No",
+              "price": "0.2400",
+              "marketId": 268682,
+              "long": false,
+              "quote": {
+                "value": "0.77",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"No\",\"Yes\"]",
+          "outcomePrices": "[\"0.2300\",\"0.2400\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "Below $55,000.00",
+          "feeCoefficient": 0.06,
+          "sortOrder": 1,
+          "bestBidQuote": {
+            "value": "0.2300",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.2400",
+            "currency": "USD"
+          },
+          "titleShort": "Below $55,000.00",
+          "ep3SyncedAt": "2026-09-08T01:57:54Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    },
+    {
+      "title": "Bitcoin price at the end of 2026?",
+      "slug": "btc-pricerange-yr-12-31-2026",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "268629",
+          "question": "Bitcoin price at the end of 2026?",
+          "slug": "cpc-btc-pricerange-yr-12-31-2026-above-150k",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T15:30:11Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is 150,000 or above at 12:00 AM ET on January 1, 2027. Only one outcome in this market will resolve to Yes.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over the sixty second period ending at 12:00 AM ET on January 1, 2027, excluding the top 20% and bottom 20% of values.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T15:30:11Z",
+          "updatedAt": "2026-09-08T01:57:54Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-13T17:48:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "536822",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-above-150k",
+              "createdAt": "2026-07-21T15:30:11Z",
+              "updatedAt": "2026-07-21T15:30:11Z",
+              "description": "Yes",
+              "price": "0.0200",
+              "marketId": 268629,
+              "long": true,
+              "quote": {
+                "value": "0.0300",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "536823",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-above-150k",
+              "createdAt": "2026-07-21T15:30:11Z",
+              "updatedAt": "2026-07-21T15:30:11Z",
+              "description": "No",
+              "price": "0.0300",
+              "marketId": 268629,
+              "long": false,
+              "quote": {
+                "value": "0.98",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0.0200\",\"0.0300\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "150,000 or above",
+          "feeCoefficient": 0.06,
+          "sortOrder": 1,
+          "bestBidQuote": {
+            "value": "0.0200",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0300",
+            "currency": "USD"
+          },
+          "titleShort": "150,000 or above",
+          "ep3SyncedAt": "2026-09-08T01:57:54Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        },
+        {
+          "id": "268630",
+          "question": "Bitcoin price at the end of 2026?",
+          "slug": "cpc-btc-pricerange-yr-12-31-2026-147500",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T15:30:13Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is between 145,000 to 149,999.99 at 12:00 AM ET on January 1, 2027. Only one outcome in this market will resolve to Yes.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over the sixty second period ending at 12:00 AM ET on January 1, 2027, excluding the top 20% and bottom 20% of values.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T15:30:13Z",
+          "updatedAt": "2026-09-08T01:57:54Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-13T17:48:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "536824",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-147500",
+              "createdAt": "2026-07-21T15:30:13Z",
+              "updatedAt": "2026-07-21T15:30:13Z",
+              "description": "Yes",
+              "price": "0.0100",
+              "marketId": 268630,
+              "long": true,
+              "quote": {
+                "value": "0.0300",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "536825",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-147500",
+              "createdAt": "2026-07-21T15:30:13Z",
+              "updatedAt": "2026-07-21T15:30:13Z",
+              "description": "No",
+              "price": "0.0300",
+              "marketId": 268630,
+              "long": false,
+              "quote": {
+                "value": "0.99",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"No\",\"Yes\"]",
+          "outcomePrices": "[\"0.0100\",\"0.0300\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "145,000 to 149,999.99",
+          "feeCoefficient": 0.06,
+          "sortOrder": 2,
+          "bestBidQuote": {
+            "value": "0.0100",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0300",
+            "currency": "USD"
+          },
+          "titleShort": "145,000 to 149,999.99",
+          "ep3SyncedAt": "2026-09-08T01:57:54Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        },
+        {
+          "id": "268631",
+          "question": "Bitcoin price at the end of 2026?",
+          "slug": "cpc-btc-pricerange-yr-12-31-2026-142500",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T15:30:15Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is between 140,000 to 144,999.99 at 12:00 AM ET on January 1, 2027. Only one outcome in this market will resolve to Yes.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over the sixty second period ending at 12:00 AM ET on January 1, 2027, excluding the top 20% and bottom 20% of values.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T15:30:15Z",
+          "updatedAt": "2026-09-08T01:57:54Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-13T17:48:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "536826",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-142500",
+              "createdAt": "2026-07-21T15:30:15Z",
+              "updatedAt": "2026-07-21T15:30:15Z",
+              "description": "Yes",
+              "price": "0.0100",
+              "marketId": 268631,
+              "long": true,
+              "quote": {
+                "value": "0.0200",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "536827",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-142500",
+              "createdAt": "2026-07-21T15:30:15Z",
+              "updatedAt": "2026-07-21T15:30:15Z",
+              "description": "No",
+              "price": "0.0200",
+              "marketId": 268631,
+              "long": false,
+              "quote": {
+                "value": "0.99",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"No\",\"Yes\"]",
+          "outcomePrices": "[\"0.0100\",\"0.0200\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "140,000 to 144,999.99",
+          "feeCoefficient": 0.06,
+          "sortOrder": 3,
+          "bestBidQuote": {
+            "value": "0.0100",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0200",
+            "currency": "USD"
+          },
+          "titleShort": "140,000 to 144,999.99",
+          "ep3SyncedAt": "2026-09-08T01:57:54Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        },
+        {
+          "id": "268656",
+          "question": "Bitcoin price at the end of 2026?",
+          "slug": "cpc-btc-pricerange-yr-12-31-2026-below-20k",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-07-21T15:30:50Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is 19,999.99 or below at 12:00 AM ET on January 1, 2027. Only one outcome in this market will resolve to Yes.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over the sixty second period ending at 12:00 AM ET on January 1, 2027, excluding the top 20% and bottom 20% of values.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-07-21T15:30:50Z",
+          "updatedAt": "2026-09-08T01:57:53Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-13T17:48:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "536876",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-below-20k",
+              "createdAt": "2026-07-21T15:30:50Z",
+              "updatedAt": "2026-07-21T15:30:50Z",
+              "description": "Yes",
+              "price": "0.0200",
+              "marketId": 268656,
+              "long": true,
+              "quote": {
+                "value": "0.0400",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "536877",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-pricerange-yr-12-31-2026-below-20k",
+              "createdAt": "2026-07-21T15:30:50Z",
+              "updatedAt": "2026-07-21T15:30:50Z",
+              "description": "No",
+              "price": "0.0400",
+              "marketId": 268656,
+              "long": false,
+              "quote": {
+                "value": "0.98",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0.0200\",\"0.0400\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "19,999.99 or below",
+          "feeCoefficient": 0.06,
+          "sortOrder": 28,
+          "bestBidQuote": {
+            "value": "0.0200",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.0400",
+            "currency": "USD"
+          },
+          "titleShort": "19,999.99 or below",
+          "ep3SyncedAt": "2026-09-08T01:57:53Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    },
+    {
+      "title": "How high will Bitcoin get this year?",
+      "slug": "btc-hitprice-high-yr-12-31-2026",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "609913",
+          "question": "How high will Bitcoin get this year?",
+          "slug": "cpc-btc-hitprice-high-yr-12-31-2026-90k",
+          "endDate": "2027-01-14T23:00:00Z",
+          "category": "crypto",
+          "startDate": "2026-09-01T22:06:45Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is above $89,999.99 at any point from the creation of this market until 12:00 AM ET on January 1, 2027.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over any sixty second period, excluding the top 20% and bottom 20% of values. If this trimmed mean crosses the threshold at any point, the market settles to Yes. Otherwise, the market settles to No.",
+          "active": true,
+          "marketType": "futures",
+          "closed": false,
+          "createdAt": "2026-09-01T22:06:45Z",
+          "updatedAt": "2026-09-08T02:53:36Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-08T20:04:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "1219338",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-hitprice-high-yr-12-31-2026-90k",
+              "createdAt": "2026-09-01T22:06:45Z",
+              "updatedAt": "2026-09-01T22:06:45Z",
+              "description": "Yes",
+              "price": "0.5900",
+              "marketId": 609913,
+              "long": true,
+              "quote": {
+                "value": "0.6300",
+                "currency": "USD"
+              },
+              "tradable": true
+            },
+            {
+              "id": "1219339",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-hitprice-high-yr-12-31-2026-90k",
+              "createdAt": "2026-09-01T22:06:45Z",
+              "updatedAt": "2026-09-01T22:06:45Z",
+              "description": "No",
+              "price": "0.6300",
+              "marketId": 609913,
+              "long": false,
+              "quote": {
+                "value": "0.41",
+                "currency": "USD"
+              },
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"No\",\"Yes\"]",
+          "outcomePrices": "[\"0.5900\",\"0.6300\"]",
+          "ep3Status": "OPEN",
+          "status": "MARKET_STATUS_OPEN",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "Above $89,999.99",
+          "feeCoefficient": 0.06,
+          "bestBidQuote": {
+            "value": "0.5900",
+            "currency": "USD"
+          },
+          "bestAskQuote": {
+            "value": "0.6300",
+            "currency": "USD"
+          },
+          "titleShort": "Above $89,999.99",
+          "ep3SyncedAt": "2026-09-08T00:31:45Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    },
+    {
+      "title": "When will Bitcoin hit $150k?",
+      "slug": "btc-150k",
+      "endDate": "2026-12-31T23:59:00Z",
+      "markets": [
+        {
+          "id": "208972",
+          "question": "When will Bitcoin hit $150k?",
+          "slug": "cpc-btc-150k-07-31-2026",
+          "endDate": "2026-08-01T12:41:11Z",
+          "category": "crypto",
+          "startDate": "2026-07-10T15:56:13Z",
+          "description": "This market will settle to Yes if the price of Bitcoin is above $149,999.99 at any point before 12:00 AM ET on August 1, 2026.\n\nOutcome sourced from CF Benchmarks' Bitcoin Real-Time Index.\n\nThe market settles based on the CF Bitcoin Real-Time Index (BRTI) using a trimmed mean calculation over any sixty second period, excluding the top 20% and bottom 20% of values. If this trimmed mean crosses the threshold at any point, the market settles to Yes. Otherwise, the market settles to No.",
+          "active": true,
+          "marketType": "futures",
+          "closed": true,
+          "createdAt": "2026-07-10T15:56:13Z",
+          "updatedAt": "2026-09-08T02:12:16Z",
+          "archived": false,
+          "orderPriceMinTickSize": 0.01,
+          "gameStartTime": "2026-07-08T19:45:00Z",
+          "manualActivation": false,
+          "sportsMarketType": "futures",
+          "marketSides": [
+            {
+              "id": "417578",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-150k-07-31-2026",
+              "createdAt": "2026-07-10T15:56:13Z",
+              "updatedAt": "2026-07-10T15:56:13Z",
+              "description": "Yes",
+              "price": "0",
+              "marketId": 208972,
+              "long": true,
+              "tradable": true
+            },
+            {
+              "id": "417579",
+              "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+              "identifier": "cpc-btc-150k-07-31-2026",
+              "createdAt": "2026-07-10T15:56:13Z",
+              "updatedAt": "2026-07-10T15:56:13Z",
+              "description": "No",
+              "price": "1",
+              "marketId": 208972,
+              "long": false,
+              "tradable": true
+            }
+          ],
+          "outcomes": "[\"No\",\"Yes\"]",
+          "outcomePrices": "[\"0\",\"1\"]",
+          "ep3Status": "EXPIRED",
+          "status": "MARKET_STATUS_RESOLVED",
+          "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+          "hidden": false,
+          "tags": [],
+          "title": "Before August 2026",
+          "feeCoefficient": 0.06,
+          "titleShort": "Before August 2026",
+          "ep3SyncedAt": "2026-09-08T02:12:16Z",
+          "minimumTradeQty": 0.01,
+          "comboEnabled": false
+        }
+      ]
+    }
+  ]
+}

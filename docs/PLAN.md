@@ -1,521 +1,87 @@
 # Polymarket Autonomous Trading Agent — PLAN
 
-## Goal
+更新：2026-09-08。依使用者核准範圍，第一版採 Polymarket US 中長天期 BTC 合約，來源規格為 [SPEC.md](SPEC.md)。
 
-Build the system incrementally from a market scanner into a controlled autonomous trading agent.
+目標仍是持續自動化交易：先把資料與規則弄正確，再驗證勝率、成本、風控及執行。日常策略可自動運作；資料或狀態異常時停止新增風險並記錄原因。
 
-The development order is intentionally:
+## Phase 0 — 基礎環境
 
-```text
-Data → Features → Quant Signal → Paper Agent → Evaluation → Micro Live → Self-Improvement
-```
+- [x] Python 3.11+、鎖定相依套件、CLI、結構化日誌。
+- [x] SQLite、外鍵、不可覆寫的行情快照、schema 升級。
+- [x] 唯讀啟動檢查；拒絕交易憑證；不提供訂單方法。
+- [x] 離線整合測試與獨立的離線資料庫。
 
-not:
+## Sprint 1 — 美國版 BTC 唯讀掃描器（本次）
 
-```text
-LLM → Wallet → Trade
-```
+- [x] 固定使用 `gateway.polymarket.us` 公開 GET API。
+- [x] 搜尋 BTC 市場，依 instrument／slug 去重；處理分頁及失敗。
+- [x] 辨識期間觸價、到期門檻與到期區間，保留判定規則、來源及規則雜湊。
+- [x] 分開觀察截止時間與 API 結算日期，正確處理 ET／UTC。
+- [x] 收集單一 instrument 委託簿，另計算有明確標記的 NO 合成顯示。
+- [x] BTC／ETH 外部參考價格，保留來源時間，使用有交易所時間的 Kraken 備援。
+- [x] 計算價差、掛單深度、動能、參考現貨距離及資料品質旗標。
+- [x] 不可取得的成交量為 null，不生成不存在的勝率或成交結果。
+- [x] 美國版輸出 WATCH／NO_TRADE；方向性訊號留待模型驗證。
+- [x] 歷史顯示報價讀取、快取及獨立資料表；不混入 trades 或分鐘 mid 序列。
+- [x] 外鍵與舊 schema 升級；美國版識別與舊國際版資料隔離。
+- [x] 暫時性錯誤的有限重試、速率限制與逐輪錯誤復原。
+- [ ] 部署環境的外部價格連通性與長時間穩定性驗收。
+- [ ] 至少一個完整交易時段的連續觀察與缺值報告。
 
----
+執行及測試結果記錄於 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) 與 `docs/US_VALIDATION_REPORT.md`。程式支援持續掃描，不代表已完成整日穩定性驗收。
 
-# Phase 0 — Project Foundation
+目前不接帳號、錢包或交易 API key，不建立 paper／live 訂單。
 
-## Deliverables
-- Repository skeleton
-- Python environment
-- Configuration system
-- Logging
-- Local database
-- Secret handling
-- Test framework
+## Sprint 2 — 資料完整性與歷史重播
 
-## Tasks
-- [ ] Create repository structure
-- [ ] Configure Python 3.11+
-- [ ] Add dependency management
-- [ ] Add `.env.example`
-- [ ] Add `settings.yaml`
-- [ ] Add `risk.yaml`
-- [ ] Configure SQLite initially
-- [ ] Configure structured logging
-- [ ] Add unit test framework
-- [ ] Add basic CLI entry points
+1. 每日收集美國版合約、委託簿、規則版本與同時點外部參考資料。
+2. 確認 BRTI 歷史資料的合法可取得方式與頻率；未取得時，觸價結果與真實標籤列為未驗證。
+3. 確認美國版成交流的存取方式；不得用歷史顯示買價推算逐筆交易。
+4. 建立按事件／日期分組的訓練、驗證及測試資料，避免同一事件的多個門檻洩漏。
+5. 重播時嚴格使用當時可得的資料；報告資料涵蓋率、缺口、退場事件與不可判定情況。
 
-## Exit criteria
-Running:
+驗收：能重播資料與品質判斷。只有報價曲線時，不宣稱已驗證策略成交率或損益。
 
-```bash
-python scripts/run_scanner.py
-```
+## Sprint 3 — 勝率基準模型與確定性風控
 
-starts the application and initializes configuration, logging, and storage.
+- 分別建立到期門檻／區間機率模型及期間觸價模型；觸價需包含觀察期間先前是否已達標的狀態。
+- 模型輸出經校準的 fair_probability、模型版本及不確定性。
+- 使用真正可買／可賣的價格，扣除美國版費用、滑價與不確定性後計算淨優勢。
+- 風控先於執行：部位、總曝險、相關合約曝險、每日虧損、回撤、資料過期、價差、深度、重複單及停止開關。
+- 基準比較：永遠 PASS、市場報價、簡單模型、模型加委託簿條件。
 
----
+驗收：樣本外 Brier score、log loss、校準、淨優勢與資料限制可重現；不能只憑高勝率通過。
 
-# Phase 1 — Market Scanner
+## Sprint 4 — 模擬交易與退出政策
 
-## Objective
+- 先實作純本機 paper 帳本，不需要交易憑證。
+- 明確區分買入開倉、賣出平倉與反向部位；避免把賣出一律當作新 NO 部位。
+- 用買賣價、深度、部分成交、手續費、延遲與市場暫停模擬成交。
+- 將 entry 與 hold／reduce／exit 分開；處理觸價事件、截止、結算及資金占用。
+- 每筆訊號、風控拒絕、模擬委託、成交及損益可追溯。
 
-Create a read-only Polymarket crypto scanner with no wallet connection.
+驗收：端到端自動運行，部位與帳本可對帳；損益包括全部交易成本；沒有充分證據時不強迫交易。
 
-## Deliverables
-- Market discovery
-- Market snapshot collection
-- Order-book collection
-- External BTC/ETH price collection
-- Feature computation
-- Watchlist ranking
+## Sprint 5 — 評估與 Shadow
 
-## Tasks
+- Walk-forward 評估、樣本外損益、最大回撤、成交率、滑價、部位存續時間及 PASS 機會成本。
+- 使用即時市場生成擬議訂單但不送出，驗證時序與可成交性。
+- 比較量化模型、微結構條件及成交量特徵的增益。
 
-### Polymarket connectivity
-- [ ] Connect to current official Polymarket SDK/API
-- [ ] Retrieve active markets
-- [ ] Retrieve token IDs
-- [ ] Retrieve best bid/ask
-- [ ] Retrieve order-book depth
-- [ ] Retrieve recent trades
-- [ ] Retrieve liquidity and volume
+驗收：事先指定樣本量與風險預算，完成持續運作與復原演練。測試門檻在看結果前設定。
 
-### Market filtering
-- [ ] Filter crypto markets
-- [ ] Filter by resolution horizon
-- [ ] Filter by minimum liquidity
-- [ ] Filter by maximum spread
-- [ ] Filter inactive/closed markets
+## Sprint 6 — 可選 LLM 審閱層
 
-### External prices
-- [ ] Add BTC spot feed
-- [ ] Add ETH spot feed
-- [ ] Timestamp all external observations
-- [ ] Detect stale external prices
+量化、風控與 paper 基準驗證後才加入。LLM 接收規則與模型結果，回傳受 schema 約束的審閱意見；不得自行編造勝率、持有密鑰、超過預算或修改 production 策略。比較它是否在成本、延遲與失誤後仍提供增益。
 
-### Storage
-- [ ] Create `markets`
-- [ ] Create `market_snapshots`
-- [ ] Create `orderbook_snapshots`
-- [ ] Create `external_prices`
+## Sprint 7 — 小額實盤（後續另行明確授權）
 
-### Initial features
-- [ ] Mid-price
-- [ ] Spread
-- [ ] Spread %
-- [ ] Volume 1m / 5m / 15m
-- [ ] Volume velocity
-- [ ] Volume acceleration
-- [ ] Order-book imbalance
-- [ ] Price momentum 1m / 5m / 15m
-- [ ] Time to expiry
-- [ ] Distance to strike
+前置：使用者帳號可用性、官方 API 規格、數量精度／費用、對帳、停止開關、風險上限及監控均通過驗證。
 
-### Scanner outputs
-- [ ] WATCH
-- [ ] POSSIBLE_YES
-- [ ] POSSIBLE_NO
-- [ ] NO_TRADE
+- 專用執行元件管理交易憑證；與 scanner／LLM 分離。
+- 小額預算、限價、單市場、嚴格每日虧損上限，處理取消與部分成交。
+- 不在本次交付啟用。當前原始碼不存在下單或錢包功能。
 
-## Exit criteria
-Scanner runs continuously for at least one trading session and produces timestamped data without wallet access.
+## Sprint 8 — 策略改善與版本升級
 
----
-
-# Phase 2 — Quantitative Signal Model
-
-## Objective
-
-Estimate fair probability independently from Polymarket price.
-
-## Tasks
-- [ ] Define market-specific target labels
-- [ ] Create historical training dataset
-- [ ] Build baseline probability model
-- [ ] Calibrate probabilities
-- [ ] Compute gross edge
-- [ ] Estimate transaction costs
-- [ ] Compute net edge
-- [ ] Create signal threshold rules
-- [ ] Backtest baseline strategy
-
-## Baseline comparisons
-- [ ] Always PASS
-- [ ] Market probability only
-- [ ] Momentum only
-- [ ] Quant model
-- [ ] Quant model + microstructure filter
-
-## Exit criteria
-Quant strategy produces reproducible historical signals with evaluation metrics.
-
----
-
-# Phase 3 — LLM Agent
-
-## Objective
-
-Add an LLM as a decision-review layer rather than the primary predictive model.
-
-## Tasks
-- [ ] Define agent system prompt
-- [ ] Define JSON output schema
-- [ ] Add schema validation
-- [ ] Provide market question
-- [ ] Provide resolution criteria
-- [ ] Provide quantitative signal
-- [ ] Provide selected feature snapshot
-- [ ] Provide recent trade context
-- [ ] Add PASS / WATCH / BUY_YES / BUY_NO decisions
-- [ ] Version prompts
-- [ ] Version model configuration
-
-## Model comparison
-Test:
-- [ ] Kimi K3
-- [ ] GPT-5.6
-- [ ] Optional additional models
-
-Measure:
-- latency
-- cost
-- JSON compliance
-- decision consistency
-- incremental value over quant-only
-
-## Exit criteria
-Agent produces structured decisions without direct wallet or secret access.
-
----
-
-# Phase 4 — Paper Trading Engine
-
-## Objective
-
-Simulate real execution realistically.
-
-## Tasks
-- [ ] Simulated order placement
-- [ ] Bid/ask-aware fills
-- [ ] Partial-fill simulation
-- [ ] Slippage estimation
-- [ ] Position tracking
-- [ ] Portfolio tracking
-- [ ] Market resolution
-- [ ] Realized P&L
-- [ ] Daily P&L report
-
-## Journal
-Record every:
-- signal
-- agent decision
-- risk decision
-- simulated order
-- fill
-- outcome
-
-## Exit criteria
-The system can run end-to-end unattended in paper mode.
-
----
-
-# Phase 5 — Evaluation Framework
-
-## Objective
-
-Determine whether the agent actually adds value.
-
-## Comparison arms
-
-### A
-Quant only
-
-### B
-Quant + LLM
-
-### C
-Quant + LLM + order-book filter
-
-### D
-Quant + LLM + order-book + volume acceleration
-
-## Metrics
-- [ ] Accuracy
-- [ ] Brier score
-- [ ] Calibration
-- [ ] Win rate
-- [ ] Expected value
-- [ ] Realized P&L
-- [ ] Maximum drawdown
-- [ ] Profit factor
-- [ ] Slippage
-- [ ] Fill rate
-- [ ] Opportunity cost of PASS
-- [ ] LLM incremental value
-
-## Exit criteria
-A daily and cumulative evaluation report can identify whether the LLM and each feature family improve performance.
-
----
-
-# Phase 6 — Risk Engine
-
-## Objective
-
-Implement deterministic controls before any live trading.
-
-## Tasks
-- [ ] Maximum trade size
-- [ ] Maximum market exposure
-- [ ] Maximum portfolio exposure
-- [ ] Maximum daily loss
-- [ ] Maximum drawdown
-- [ ] Maximum spread
-- [ ] Minimum liquidity
-- [ ] Minimum edge
-- [ ] Minimum confidence
-- [ ] Correlated position limits
-- [ ] Stale-data rejection
-- [ ] Duplicate-order protection
-- [ ] Cooldown
-- [ ] Kill switch
-
-## Exit criteria
-Risk engine can reject or reduce orders independently of the LLM.
-
----
-
-# Phase 7 — Shadow Mode
-
-## Objective
-
-Use live market data and real intended orders without sending them.
-
-## Tasks
-- [ ] Generate real-time intended orders
-- [ ] Record exact intended execution time
-- [ ] Track hypothetical fill
-- [ ] Compare intended vs achievable fill
-- [ ] Evaluate latency
-- [ ] Validate live-data reliability
-
-## Exit criteria
-Shadow results closely match expected execution assumptions.
-
----
-
-# Phase 8 — Micro Live Trading
-
-## Objective
-
-Enable tightly controlled live execution.
-
-## Initial constraints
-Suggested starting mode:
-- very small capital
-- limit orders only
-- strict daily loss cap
-- one market at a time
-- no strategy auto-modification
-
-## Tasks
-- [ ] Trading credential separation
-- [ ] Order submission
-- [ ] Cancel/replace
-- [ ] Partial fills
-- [ ] Portfolio reconciliation
-- [ ] Kill switch
-- [ ] Live monitoring
-- [ ] Post-trade reconciliation
-
-## Exit criteria
-Small live trades execute correctly and reconcile with recorded state.
-
----
-
-# Phase 9 — Strategy Improvement Agent
-
-## Objective
-
-Allow the system to propose improvements without direct production modification.
-
-## Tasks
-- [ ] Daily strategy review
-- [ ] Failure pattern detection
-- [ ] Feature attribution
-- [ ] Generate strategy hypotheses
-- [ ] Generate candidate rule changes
-- [ ] Generate candidate parameter changes
-- [ ] Version candidate strategy
-- [ ] Automatic backtest
-
-## Example
-
-Observation:
-
-```text
-Trades with spread > 0.03 have negative expectancy.
-```
-
-Candidate:
-
-```python
-if spread > 0.03:
-    decision = "PASS"
-```
-
-Then:
-
-```text
-Backtest
-   ↓
-Walk-forward
-   ↓
-Shadow
-   ↓
-Promotion decision
-```
-
-## Exit criteria
-Agent can propose and test strategies without directly modifying production.
-
----
-
-# Phase 10 — Controlled Autonomous Improvement
-
-## Objective
-
-Automate promotion only after strong evidence.
-
-## Promotion gate
-
-A candidate must meet all configured requirements, for example:
-- minimum sample size
-- positive out-of-sample expectancy
-- acceptable maximum drawdown
-- no major degradation in calibration
-- successful shadow performance
-- reproducibility
-- rollback capability
-
-## Required safeguards
-- immutable strategy history
-- production rollback
-- model version logging
-- prompt version logging
-- rule version logging
-- promotion audit trail
-
----
-
-# Recommended First Development Sprint
-
-## Sprint 1
-
-Build only:
-
-```text
-Market Discovery
-      ↓
-Market Data
-      ↓
-External BTC/ETH Data
-      ↓
-Feature Engine
-      ↓
-Scanner
-```
-
-### Sprint 1 files
-
-```text
-src/
-├── discovery/
-│   └── polymarket.py
-├── data/
-│   ├── polymarket_feed.py
-│   ├── crypto_feed.py
-│   └── storage.py
-├── features/
-│   └── market_features.py
-└── scanner/
-    └── scanner.py
-
-scripts/
-└── run_scanner.py
-```
-
-### Sprint 1 console output
-
-Example:
-
-```text
-BTC Up or Down — 15m
-
-YES       0.56
-NO        0.44
-
-Spread    0.02
-Volume5m  $18,430
-VolAccel  2.8x
-OB Imbal  0.67
-BTC 5m    +0.42%
-
-Signal:
-POSSIBLE_YES
-```
-
-No LLM.
-No wallet.
-No order submission.
-
----
-
-# Recommended Technology Stack
-
-## Core
-- Python 3.11+
-- asyncio
-- pandas or polars
-- pydantic
-- SQLite initially
-- PostgreSQL later if needed
-
-## Modeling
-- scikit-learn
-- scipy
-- lightgbm/xgboost later if justified
-
-## LLM
-Swappable provider interface:
-- Kimi K3
-- GPT-5.6
-
-## Monitoring
-Initial:
-- console + structured logs
-
-Later:
-- dashboard
-- alerts
-- trade/evaluation UI
-
----
-
-# Immediate Next Step
-
-Implement **Sprint 1** before adding the LLM.
-
-Definition of done:
-
-```text
-The application can continuously scan selected crypto Polymarket markets,
-combine Polymarket and BTC/ETH market data,
-calculate volume, price, spread, and order-book features,
-store observations,
-and classify each market as:
-
-WATCH
-POSSIBLE_YES
-POSSIBLE_NO
-NO_TRADE
-```
-
-Once that works reliably, move to the quantitative probability model.
+系統可提出假設並自動跑離線評估；新版本須通過固定的樣本外、paper、shadow 與風控門檻。保留不可變更的版本、稽核及回復能力。策略不能在實盤中自行改寫程式或提高資金上限。

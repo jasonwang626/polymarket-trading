@@ -1,31 +1,35 @@
 app:
+  venue: polymarket_us
   environment: development
   read_only: true
   log_level: INFO
   log_path: logs/scanner.jsonl
 
 storage:
-  sqlite_path: data/scanner.sqlite3
+  sqlite_path: data/scanner-us.sqlite3
 
 api:
-  gamma_base_url: https://gamma-api.polymarket.com
-  clob_base_url: https://clob.polymarket.com
-  data_base_url: https://data-api.polymarket.com
+  us_base_url: https://gateway.polymarket.us
   coinbase_base_url: https://api.exchange.coinbase.com
   kraken_base_url: https://api.kraken.com
   timeout_seconds: 12
+  retry_attempts: 3
+  retry_base_seconds: 0.5
+  public_requests_per_second: 5
   user_agent: polymarket-readonly-agent/0.1
 
 scanner:
   refresh_seconds: 10
   discovery_refresh_seconds: 300
-  market_page_size: 100
+  market_page_size: 50
   market_max_pages: 5
   max_watchlist_size: 20
   max_concurrency: 8
   recent_trades_limit: 500
   external_price_stale_seconds: 30
   history_lookback_minutes: 20
+  history_tolerance_seconds: 60
+  orderbook_stale_seconds: 120
 
 filters:
   crypto_keywords:
@@ -38,8 +42,9 @@ filters:
   min_liquidity_usd: 1000
   min_volume_24h_usd: 100
   min_hours_to_expiry: 0.05
-  max_hours_to_expiry: 168
+  max_hours_to_expiry: 8760
   max_spread: 0.08
+  min_book_depth_usd: 100
 
 signals:
   min_orderbook_imbalance: 0.60

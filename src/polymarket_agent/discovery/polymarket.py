@@ -15,7 +15,8 @@ from polymarket_agent.models import Market
 LOGGER = logging.getLogger(__name__)
 
 STRIKE_RE = re.compile(
-    r"(?:\$|USD\s*)?([0-9][0-9,]*(?:\.\d+)?)\s*([kKmM])?",
+    r"(?:\$|USD\s*|\b(?:above|below|over|under)\s+)([0-9][0-9,]*(?:\.\d+)?)\s*([kKmM])?",
+    re.IGNORECASE,
 )
 
 
@@ -81,8 +82,9 @@ def infer_strike(text: str, underlying: str | None) -> float | None:
 def parse_market(payload: dict[str, Any]) -> Market | None:
     labels = [str(item).lower() for item in _decode_array(payload.get("outcomes"))]
     tokens = [str(item) for item in _decode_array(payload.get("clobTokenIds"))]
-    if len(labels) < 2 or len(tokens) < 2:
+    if len(labels) != 2 or len(tokens) != 2:
         return None
+    labels = [{"up": "yes", "down": "no"}.get(label, label) for label in labels]
     try:
         yes_index = labels.index("yes")
         no_index = labels.index("no")

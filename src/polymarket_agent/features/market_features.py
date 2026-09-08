@@ -24,13 +24,13 @@ def _return(current: float | None, previous: float | None) -> float | None:
 def _depth(book: OrderBook) -> tuple[float, float, float | None, float | None, float | None]:
     best_bid, best_ask = book.best_bid, book.best_ask
     bid_depth = (
-        sum(level.size for level in book.bids if best_bid and level.price >= best_bid * 0.99)
-        if best_bid
+        sum(level.size for level in book.bids if level.price >= best_bid * 0.99)
+        if best_bid is not None
         else 0.0
     )
     ask_depth = (
-        sum(level.size for level in book.asks if best_ask and level.price <= best_ask * 1.01)
-        if best_ask
+        sum(level.size for level in book.asks if level.price <= best_ask * 1.01)
+        if best_ask is not None
         else 0.0
     )
     total = bid_depth + ask_depth
@@ -49,7 +49,7 @@ def _volume_features(trades: list[Trade], now: datetime) -> dict[str, float | No
         return sum(
             trade.price * trade.size
             for trade in trades
-            if trade.timestamp >= cutoff and (side is None or trade.side == side)
+            if cutoff <= trade.timestamp <= now and (side is None or trade.side == side)
         )
 
     volume_1m = notional(1)
@@ -82,11 +82,20 @@ class FeatureEngine:
         market: Market,
         yes_book: OrderBook,
         no_book: OrderBook,
-        trades: list[Trade],
+        trades: list[Trade] | None,
         external: ExternalPrice | None,
         now: datetime | None = None,
     ) -> tuple[MarketSnapshot, FeatureSnapshot]:
         now = now or datetime.now(UTC)
+        issues: list[str] = []
+        for label, book in (("YES", yes_book), ("NO", no_book)):
+            age = (now - book.timestamp).total_seconds()
+            if not 0 <= age <= self.settings.scanner.orderbook_stale_seconds:
+                issues.append(f"{label} 委託簿時間過期或在未來")
+            if book.mid is None:
+                issues.append(f"{label} 委託簿缺少雙邊報價或買賣價交叉")
+            if book.state != "OPEN":
+                issues.append(f"{label} 市場未開放")
         yes_mid = yes_book.mid
         no_mid = no_book.mid
         spread = yes_book.spread
@@ -103,36 +112,49 @@ class FeatureEngine:
             volume_24h=market.volume_24h,
             liquidity=market.liquidity,
         )
+        if issues:
+            snapshot.yes_mid = None
+            snapshot.no_mid = None
 
         previous_mid = {
             minutes: self.storage.market_mid_at_or_before(
-                market.market_id, now - timedelta(minutes=minutes)
+                market.market_id, now - timedelta(minutes=minutes),
+                self.settings.scanner.history_tolerance_seconds,
             )
             for minutes in (1, 5, 15)
         }
         external_previous = {
             minutes: self.storage.external_price_at_or_before(
-                market.underlying, now - timedelta(minutes=minutes)
+                market.underlying, now - timedelta(minutes=minutes),
+                self.settings.scanner.history_tolerance_seconds,
+                venue=external.venue if external else None,
             )
             if market.underlying
             else None
             for minutes in (1, 5, 15)
         }
         bid_depth, ask_depth, imbalance, top_imbalance, depth_ratio = _depth(yes_book)
-        volume = _volume_features(trades, now)
+        valid_trades = [
+            t for t in trades or []
+            if t.market_id == market.market_id and now - timedelta(minutes=15) <= t.timestamp <= now
+        ]
+        volume = _volume_features(valid_trades, now) if trades is not None else {}
         seconds_to_expiry = max((market.resolution_time - now).total_seconds(), 0.0)
         external_spot = external.price if external else None
         stale = (
             external is None
-            or (now - external.timestamp).total_seconds()
-            > self.settings.scanner.external_price_stale_seconds
+            or external.symbol != market.underlying
+            or not 0 <= (now - external.timestamp).total_seconds()
+            <= self.settings.scanner.external_price_stale_seconds
         )
         distance = (
             (external_spot - market.strike) / market.strike
             if external_spot is not None and market.strike
+            and market.contract_type != "terminal_range" and not stale
             else None
         )
-        vol_scale = abs(_return(external_spot, external_previous[15]) or 0.0)
+        if stale:
+            external_previous = dict.fromkeys((1, 5, 15))
 
         features = FeatureSnapshot(
             market_id=market.market_id,
@@ -160,17 +182,28 @@ class FeatureEngine:
             seconds_to_expiry=seconds_to_expiry,
             minutes_to_expiry=seconds_to_expiry / 60,
             distance_to_strike=distance,
-            standardized_distance_to_strike=(distance / vol_scale if distance is not None and vol_scale else None),
+            # A single absolute return is not a volatility estimate.
+            standardized_distance_to_strike=None,
             external_price_stale=stale,
+            data_issues=issues,
+            recent_trades_available=trades is not None,
+            recent_trade_count=len(valid_trades),
+            bid_depth_usd=sum(x.price * x.size for x in yes_book.bids
+                              if yes_book.best_bid is not None
+                              and x.price >= yes_book.best_bid * 0.99),
+            ask_depth_usd=sum(x.price * x.size for x in yes_book.asks
+                              if yes_book.best_ask is not None
+                              and x.price <= yes_book.best_ask * 1.01),
             **volume,
         )
         return snapshot, features
 
 
 def rank_score(market: Market, features: FeatureSnapshot) -> float:
-    spread_penalty = (features.spread or 1.0) * 25
-    volume_bonus = math.log1p(features.volume_15m)
+    spread_penalty = (features.spread if features.spread is not None else 1.0) * 25
+    volume_bonus = math.log1p(features.volume_15m or 0)
     liquidity_bonus = math.log1p(market.liquidity) * 0.5
-    imbalance_bonus = abs((features.orderbook_imbalance or 0.5) - 0.5) * 2
+    imbalance_bonus = abs(
+        (features.orderbook_imbalance if features.orderbook_imbalance is not None else 0.5) - 0.5
+    ) * 2
     return liquidity_bonus + volume_bonus + imbalance_bonus - spread_penalty
-

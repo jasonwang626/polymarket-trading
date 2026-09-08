@@ -1,147 +1,91 @@
 # polymarket-trading
 
-Phase 0／Sprint 1 的交付版本：一個**唯讀**的 Polymarket 加密貨幣市場掃描器。
+**Polymarket US 中長天期 BTC 唯讀掃描器**。使用者於 2026-09-08 核准此範圍；規格與順序以 [SPEC.md](docs/SPEC.md)／[PLAN.md](docs/PLAN.md) 為準。
 
-目前只做：
+程式會搜尋合約、讀取委託簿、收集 BTC／ETH 現貨參考價格、儲存快照並檢查資料品質。目前輸出 `WATCH` 或 `NO_TRADE`；尚未計算經驗證的勝率，也沒有模擬交易、LLM、帳號登入、錢包或下單功能。
 
-```text
-Market Discovery
-      ↓
-Polymarket Market Data
-      ↓
-BTC / ETH External Price
-      ↓
-Feature Engine
-      ↓
-WATCH / POSSIBLE_YES / POSSIBLE_NO / NO_TRADE
-```
+## 安裝與執行
 
-目前不包含 LLM、錢包、簽章、下單、paper trading 或 live trading。所有網路介面都只公開讀取方法；若執行環境中出現 Polymarket 私鑰、錢包地址或交易 API 憑證，掃描器會拒絕啟動。
-
-## 快速開始
-
-需求：Python 3.11 以上。建議使用 `uv`：
+需要 Python 3.11+：
 
 ```bash
-uv sync --extra dev
-```
-
-先以內建 fixtures 驗證完整流程（不連網）：
-
-```bash
+uv sync --frozen --extra dev
 uv run python scripts/run_scanner.py --offline --once
-```
-
-執行一輪即時唯讀掃描：
-
-```bash
 uv run python scripts/run_scanner.py --once
 ```
 
-依 `config/settings.yaml` 的更新頻率持續執行：
+離線模式使用明確標記的合成範例，預設寫入 `data/offline-us.sqlite3`。即時資料預設寫入 `data/scanner-us.sqlite3`。
+
+持續掃描，按 Ctrl-C 停止：
 
 ```bash
 uv run python scripts/run_scanner.py
 ```
 
-按 `Ctrl-C` 安全停止。掃描結果存入 `data/scanner.sqlite3`，結構化日誌寫入 `logs/scanner.jsonl`。
+執行三輪、限制三個市場，使用獨立驗證資料庫：
 
-## 測試與品質檢查
+```bash
+uv run python scripts/run_scanner.py --cycles 3 --max-markets 3 --database data/validation-us.sqlite3
+```
+
+日誌寫入 `logs/scanner.jsonl`。單一合約讀取失敗會記錄 `NO_TRADE`；暫時性市場搜尋失敗會於下一輪重試。資料庫故障不會被當成正常行情略過。
+
+## 歷史報價收集
+
+已提供逐日切分的公開歷史收集工具，日期為 UTC，起始日包含、結束日不包含：
+
+```bash
+uv run python scripts/collect_us_history.py \
+  --slug cpc-btc-100k-09-30-2026 \
+  --start 2026-08-07 --end 2026-09-07 \
+  --database data/history-us.sqlite3
+```
+
+此範例的合約可能已到期，仍可嘗試讀取官方保留的歷史。API 回傳空陣列時會報告 0 筆，不生成資料。收集結果為 `quote_history` 的顯示買價；**這不是逐筆成交、模擬成交或損益回測**。
+
+## 市場與資料語意
+
+- 美國版每個市場是一個 instrument，以 `polymarket_us:{slug}` 識別。
+- NO 顯示報價由同一委託簿轉換，並標記 `synthetic=true`；不代表另一組 token 或獨立深度。
+- 分開辨識期間觸價、到期門檻及到期區間。觀察截止時間取自規則，另存 API 的結算日期。
+- 目前合約以 CF Benchmarks BRTI 規則判定。Coinbase／Kraken 的現貨只是參考，不能代替該指數判定結果。
+- 公開 REST 介接沒有逐筆成交流，分鐘成交量、成交量加速度等欄位是空值。
+- 外部價格使用交易所時間；缺失、過期、未來時間、幣別錯誤、單邊或交叉委託簿都會阻止有效訊號。
+- 動能只取目標時間之前、容忍範圍內的同來源歷史。第一輪及資料缺口不產生虛構報酬率。
+- 全部美國版結果維持行情監控，`fair_probability=null`。方向性標籤只保留在舊版回歸程式，不由目前 CLI 產生。
+
+## 設定
+
+`config/settings.yaml` 設定刷新頻率、觀察天期、價差及深度下限。預設最優價附近 1% 的雙邊掛單金額各至少 100 美元，並限制最寬價差 0.08。這些是可調整的資料篩選門檻，不是已驗證的獲利條件。
+
+API 固定使用 `https://gateway.polymarket.us`，共用每秒 5 次節流器與有限重試。401／403／451 不重試或繞過；429 依 Retry-After 延後。歷史重複請求至少快取 30 秒。
+
+掃描器不需要任何 Polymarket API key；啟動時會拒絕已知的交易憑證環境變數。`config/risk.yaml` 仍固定 READ_ONLY。
+
+## 儲存與相容性
+
+| 資料表 | 用途 |
+|---|---|
+| `markets` | 目前市場 metadata、平台、instrument、規則類型及日期 |
+| `market_metadata_snapshots` | 每次觀察的完整規則與 metadata，保留歷程 |
+| `market_snapshots` | 當輪買賣價、有效 mid 與價差 |
+| `orderbook_snapshots` | 原始／合成委託簿，來源與接收時間 |
+| `external_prices` | BTC／ETH 現貨價格，交易所時間與接收時間 |
+| `quote_history` | 美國版歷史顯示買價，與交易紀錄分開 |
+| `features` | 特徵、資料品質、分類與排序 |
+| `market_trades` | 舊版成交資料；目前 US REST 不寫入虛構成交 |
+
+SQLite schema v2 採新增欄位及資料表升級，保留舊版資料。`condition_id`、`yes_token_id`、`no_token_id` 僅供舊國際版紀錄；US 紀錄為空字串。不要刪除原始資料庫來升級。
+
+舊國際版解析器保留供歷史回歸測試，CLI 固定使用美國版。舊月測試報告不能當成美國版策略績效。
+
+## 驗證與進度
 
 ```bash
 uv run pytest -q
 uv run ruff check .
 ```
 
-## 專案結構
+詳見 [實作狀態](docs/IMPLEMENTATION_STATUS.md) 與 [美國版驗證報告](docs/US_VALIDATION_REPORT.md)。下一個階段先建立資料重播，再驗證勝率、風控與本機模擬交易；完整交易時段的穩定性仍需實際部署驗收。
 
-```text
-polymarket-agent/
-├── config/
-│   ├── settings.yaml
-│   └── risk.yaml
-├── data/
-├── docs/
-│   ├── SPEC.md
-│   ├── PLAN.md
-│   └── IMPLEMENTATION_STATUS.md
-├── logs/
-├── scripts/
-│   └── run_scanner.py
-├── src/polymarket_agent/
-│   ├── config.py
-│   ├── logging.py
-│   ├── models.py
-│   ├── offline.py
-│   ├── discovery/polymarket.py
-│   ├── data/
-│   │   ├── crypto_feed.py
-│   │   ├── polymarket_feed.py
-│   │   └── storage.py
-│   ├── features/market_features.py
-│   └── scanner/scanner.py
-└── tests/
-```
-
-## 資料來源
-
-- Gamma API：搜尋 active／open markets 與取得 token IDs。
-- CLOB API：讀取 YES／NO order books。
-- Data API：讀取市場近期成交。
-- Coinbase Exchange public ticker：BTC-USD 與 ETH-USD 外部參考價格。
-- Kraken public ticker：Coinbase 暫時失效時的唯讀備援來源。
-
-這些端點皆不需錢包或交易驗證。實作依據：
-
-- https://docs.polymarket.com/getting-started/api
-- https://docs.polymarket.com/market-data/market-details
-- https://docs.polymarket.com/api-reference/market-data/get-order-book
-- https://docs.polymarket.com/market-data/public-analytics
-- https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-all-known-trading-pairs
-- https://docs.kraken.com/api-reference/market-data/get-ticker-information
-
-## SQLite 資料表
-
-| 資料表 | 用途 | 寫入方式 |
-|---|---|---|
-| `markets` | 市場主檔與目前 metadata | 依 `market_id` 更新 |
-| `market_snapshots` | YES／NO bid、ask、mid、spread | append-only |
-| `orderbook_snapshots` | 完整 bid／ask levels 與原始 JSON | append-only |
-| `external_prices` | BTC／ETH timestamped spot price | append-only |
-| `market_trades` | 公開成交紀錄 | 去重後保留 |
-| `features` | 每輪特徵、分類與 ranking | append-only |
-
-## 初始特徵
-
-- YES／NO mid-price、spread、spread %
-- YES price change／momentum：1m、5m、15m
-- 成交量：1m、5m、15m；velocity、acceleration、buy／sell ratio
-- 1% order-book depth、imbalance、top-level imbalance、depth ratio
-- BTC／ETH spot return：1m、5m、15m
-- seconds／minutes to expiry
-- 可辨識 threshold 市場的 distance to strike 與標準化距離
-- 外部價格 stale flag
-
-第一輪執行時，部分歷史型特徵會是空值；資料累積滿 1／5／15 分鐘後才會逐步可用。這是刻意設計，避免用不存在的歷史資料製造訊號。
-
-## 掃描分類
-
-- `NO_TRADE`：資料過期、order book 不完整、spread 過大、流動性不足或市場已到期。
-- `POSSIBLE_YES`：order-book imbalance、YES momentum、外部價格動能中至少兩項支持 YES。
-- `POSSIBLE_NO`：同樣條件中至少兩項支持 NO。
-- `WATCH`：市場可監控，但支持證據未達設定門檻。
-
-這些只是 scanner 標籤，不是交易建議，也不會建立 intended order。
-
-## 設定
-
-一般執行與篩選參數在 `config/settings.yaml`。`config/risk.yaml` 只預留給後續 deterministic risk engine，現在固定：
-
-```yaml
-mode: READ_ONLY
-wallet_enabled: false
-order_submission_enabled: false
-live_trading_enabled: false
-```
-
-Phase 2 的 quantitative fair-probability model、Phase 3 的 LLM review layer 與 Phase 4 的 paper trading 都尚未加入，符合 `SPEC.md`／`PLAN.md` 的開發順序。
+API 依據：[Polymarket US](https://docs.polymarket.us/api-reference/introduction)、[歷史資料](https://docs.polymarket.us/api-reference/price-history/get-price-history)、[Coinbase ticker](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-ticker)、[Kraken Recent Trades](https://docs.kraken.com/api-reference/market-data/get-recent-trades)。

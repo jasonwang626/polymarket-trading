@@ -49,9 +49,13 @@ class CryptoPriceFeed:
         response = await self.client.get(f"/products/{product_id}/ticker")
         response.raise_for_status()
         payload = response.json()
+        timestamp = datetime.fromisoformat(payload["time"])
+        if timestamp.tzinfo is None:
+            raise ValueError("Coinbase ticker time lacks timezone")
         return ExternalPrice(
             symbol=product_id,
-            timestamp=datetime.now(UTC),
+            timestamp=timestamp,
+            received_at=datetime.now(UTC),
             price=float(payload["price"]),
             volume_24h=float(payload["volume"]) if payload.get("volume") else None,
         )
@@ -67,19 +71,25 @@ class CryptoPriceFeed:
                     "External price request failed; affected markets will be NO_TRADE",
                     extra={"product": product, "error": repr(observation)},
                 )
+            elif not 0 <= (datetime.now(UTC) - observation.timestamp).total_seconds() <= (
+                self.settings.scanner.external_price_stale_seconds
+            ):
+                LOGGER.warning("Coinbase source timestamp is stale or in the future",
+                               extra={"product": product})
             else:
                 successful[observation.symbol] = observation
         missing = set(self.SUPPORTED_PRODUCTS) - successful.keys()
         if missing:
             try:
-                kraken = await self._get_kraken_spots()
+                kraken = await self._get_kraken_spots(sorted(missing))
                 for product in missing:
                     if product in kraken:
                         successful[product] = kraken[product]
-                LOGGER.info(
-                    "Used public Kraken fallback prices",
-                    extra={"products": sorted(missing & kraken.keys())},
-                )
+                if kraken:
+                    LOGGER.info(
+                        "Used public Kraken fallback prices",
+                        extra={"products": sorted(missing & kraken.keys())},
+                    )
             except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
                 LOGGER.warning(
                     "Kraken fallback price request failed; affected markets will be NO_TRADE",
@@ -87,24 +97,36 @@ class CryptoPriceFeed:
                 )
         return successful
 
-    async def _get_kraken_spots(self) -> dict[str, ExternalPrice]:
-        response = await self.kraken_client.get(
-            "/0/public/Ticker", params={"pair": "XBTUSD,ETHUSD"}
-        )
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get("error"):
-            raise ValueError(f"Kraken ticker error: {payload['error']}")
-        now = datetime.now(UTC)
+    async def _get_kraken_spots(self, products: list[str]) -> dict[str, ExternalPrice]:
+        # Kraken Ticker lacks the exchange timestamp of its last price. Recent
+        # Trades supplies that timestamp; do not label receipt time as price time.
+        async def fetch(product: str) -> ExternalPrice:
+            pair = {"BTC-USD": "XBTUSD", "ETH-USD": "ETHUSD"}[product]
+            response = await self.kraken_client.get(
+                "/0/public/Trades", params={"pair": pair, "count": 1}
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("error"):
+                raise ValueError(f"Kraken public trade error: {payload['error']}")
+            expected = {"BTC-USD": "XXBTZUSD", "ETH-USD": "XETHZUSD"}[product]
+            row = payload["result"][expected][-1]
+            return ExternalPrice(
+                symbol=product, venue="kraken",
+                timestamp=datetime.fromtimestamp(float(row[2]), UTC),
+                received_at=datetime.now(UTC), price=float(row[0]),
+            )
+
+        results = await asyncio.gather(*(fetch(x) for x in products), return_exceptions=True)
         prices: dict[str, ExternalPrice] = {}
-        for key, ticker in payload["result"].items():
-            product = "BTC-USD" if "XBT" in key or "BTC" in key else "ETH-USD" if "ETH" in key else None
-            if product:
-                prices[product] = ExternalPrice(
-                    symbol=product,
-                    venue="kraken",
-                    timestamp=now,
-                    price=float(ticker["c"][0]),
-                    volume_24h=float(ticker["v"][1]) if ticker.get("v") else None,
-                )
+        for product, value in zip(products, results, strict=True):
+            if isinstance(value, ExternalPrice) and 0 <= (
+                datetime.now(UTC) - value.timestamp
+            ).total_seconds() <= self.settings.scanner.external_price_stale_seconds:
+                prices[product] = value
+            else:
+                LOGGER.warning("Kraken public trade request failed or source timestamp invalid",
+                               extra={"product": product,
+                                      "error": type(value).__name__ if isinstance(value, ExternalPrice)
+                                      else repr(value)})
         return prices

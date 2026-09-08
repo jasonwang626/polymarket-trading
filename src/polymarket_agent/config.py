@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
 class AppConfig(BaseModel):
+    venue: Literal["polymarket_us"] = "polymarket_us"
     environment: str = "development"
     read_only: bool = True
     log_level: str = "INFO"
@@ -20,13 +21,18 @@ class StorageConfig(BaseModel):
 
 
 class ApiConfig(BaseModel):
-    gamma_base_url: str
-    clob_base_url: str
-    data_base_url: str
+    us_base_url: Literal["https://gateway.polymarket.us"] = "https://gateway.polymarket.us"
+    # Retained only for legacy fixture/regression adapters; never used by the CLI.
+    gamma_base_url: str = "https://gamma-api.polymarket.com"
+    clob_base_url: str = "https://clob.polymarket.com"
+    data_base_url: str = "https://data-api.polymarket.com"
     coinbase_base_url: str
     kraken_base_url: str
     timeout_seconds: float = Field(default=12, gt=0, le=60)
     user_agent: str = "polymarket-readonly-agent/0.1"
+    retry_attempts: int = Field(default=3, ge=1, le=5)
+    retry_base_seconds: float = Field(default=0.5, ge=0, le=5)
+    public_requests_per_second: float = Field(default=5, gt=0, le=10)
 
 
 class ScannerConfig(BaseModel):
@@ -39,6 +45,8 @@ class ScannerConfig(BaseModel):
     recent_trades_limit: int = Field(default=500, ge=1, le=10000)
     external_price_stale_seconds: int = Field(default=30, ge=1)
     history_lookback_minutes: int = Field(default=20, ge=15)
+    orderbook_stale_seconds: int = Field(default=120, ge=1)
+    history_tolerance_seconds: int = Field(default=60, ge=0, le=300)
 
 
 class FilterConfig(BaseModel):
@@ -48,6 +56,7 @@ class FilterConfig(BaseModel):
     min_hours_to_expiry: float = Field(default=0.05, ge=0)
     max_hours_to_expiry: float = Field(default=168, gt=0)
     max_spread: float = Field(default=0.08, gt=0, le=1)
+    min_book_depth_usd: float = Field(default=100, ge=0)
 
 
 class SignalConfig(BaseModel):
@@ -89,6 +98,10 @@ FORBIDDEN_SECRET_NAMES = {
     "POLYMARKET_API_SECRET",
     "POLYMARKET_PASSPHRASE",
     "POLYMARKET_WALLET_ADDRESS",
+    "POLYMARKET_US_API_KEY",
+    "POLYMARKET_US_API_SECRET",
+    "POLYMARKET_US_SECRET_KEY",
+    "POLYMARKET_US_KEY_ID",
 }
 
 

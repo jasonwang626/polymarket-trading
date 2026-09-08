@@ -5,7 +5,7 @@ import json
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ from polymarket_agent.models import (
     Market,
     MarketSnapshot,
     OrderBook,
+    QuoteHistoryPoint,
     Trade,
 )
 
@@ -113,6 +114,23 @@ CREATE TABLE IF NOT EXISTS features (
 
 CREATE INDEX IF NOT EXISTS idx_features_market_time
 ON features(market_id, timestamp);
+
+CREATE TABLE IF NOT EXISTS market_metadata_snapshots (
+    snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    market_id TEXT NOT NULL REFERENCES markets(market_id),
+    observed_at TEXT NOT NULL,
+    normalized_json TEXT NOT NULL,
+    raw_json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS quote_history (
+    market_id TEXT NOT NULL REFERENCES markets(market_id),
+    timestamp TEXT NOT NULL,
+    yes_ask REAL NOT NULL,
+    no_ask REAL NOT NULL,
+    source TEXT NOT NULL,
+    retrieved_at TEXT NOT NULL,
+    PRIMARY KEY (market_id, timestamp, yes_ask, no_ask, source)
+);
 """
 
 
@@ -124,6 +142,7 @@ class Storage:
     def connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
         try:
             yield connection
             connection.commit()
@@ -133,7 +152,30 @@ class Storage:
     def initialize(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
+            if connection.execute("PRAGMA user_version").fetchone()[0] > 2:
+                raise ValueError("Database schema is newer than this application")
             connection.executescript(SCHEMA)
+            additions = {
+                "markets": {
+                    "venue": "TEXT NOT NULL DEFAULT 'polymarket_international'",
+                    "instrument_id": "TEXT NOT NULL DEFAULT ''",
+                    "contract_type": "TEXT NOT NULL DEFAULT 'unknown'",
+                    "settlement_time": "TEXT",
+                    "rule_hash": "TEXT NOT NULL DEFAULT ''",
+                },
+                "orderbook_snapshots": {
+                    "instrument_id": "TEXT NOT NULL DEFAULT ''",
+                    "synthetic": "INTEGER NOT NULL DEFAULT 0",
+                    "received_at": "TEXT",
+                },
+                "external_prices": {"received_at": "TEXT"},
+            }
+            for table, columns in additions.items():
+                existing = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+                for name, definition in columns.items():
+                    if name not in existing:
+                        connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+            connection.execute("PRAGMA user_version=2")
 
     @staticmethod
     def _json(value: Any) -> str:
@@ -185,6 +227,19 @@ class Storage:
                 """,
                 params,
             )
+            connection.execute(
+                """UPDATE markets SET venue=?, instrument_id=?, contract_type=?,
+                settlement_time=?, rule_hash=? WHERE market_id=?""",
+                (market.venue, market.instrument_id, market.contract_type,
+                 market.settlement_time.isoformat() if market.settlement_time else None,
+                 market.rule_hash, market.market_id),
+            )
+            connection.execute(
+                """INSERT INTO market_metadata_snapshots
+                (market_id, observed_at, normalized_json, raw_json) VALUES (?, ?, ?, ?)""",
+                (market.market_id, observed_at.isoformat(),
+                 self._json(market.model_dump(mode="json")), self._json(market.raw)),
+            )
 
     def insert_market_snapshot(self, snapshot: MarketSnapshot) -> int:
         with self.connect() as connection:
@@ -217,8 +272,8 @@ class Storage:
                 """
                 INSERT INTO orderbook_snapshots (
                     market_id, outcome, token_id, timestamp, best_bid, best_ask,
-                    bid_levels_json, ask_levels_json, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    bid_levels_json, ask_levels_json, raw_json, instrument_id, synthetic, received_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     market_id,
@@ -230,6 +285,9 @@ class Storage:
                     self._json([x.model_dump() for x in book.bids]),
                     self._json([x.model_dump() for x in book.asks]),
                     self._json(book.raw),
+                    book.instrument_id,
+                    int(book.synthetic),
+                    book.received_at.isoformat(),
                 ),
             )
             return int(cursor.lastrowid)
@@ -238,8 +296,8 @@ class Storage:
         with self.connect() as connection:
             cursor = connection.execute(
                 """
-                INSERT INTO external_prices (timestamp, symbol, venue, price, volume_24h)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO external_prices (timestamp, symbol, venue, price, volume_24h, received_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     observation.timestamp.isoformat(),
@@ -247,6 +305,7 @@ class Storage:
                     observation.venue,
                     observation.price,
                     observation.volume_24h,
+                    observation.received_at.isoformat(),
                 ),
             )
             return int(cursor.lastrowid)
@@ -308,29 +367,49 @@ class Storage:
             )
             return int(cursor.lastrowid)
 
-    def market_mid_at_or_before(self, market_id: str, timestamp: datetime) -> float | None:
+    def market_mid_at_or_before(
+        self, market_id: str, timestamp: datetime, max_age_seconds: int = 60
+    ) -> float | None:
         with self.connect() as connection:
             row = connection.execute(
                 """
                 SELECT yes_mid FROM market_snapshots
-                WHERE market_id = ? AND timestamp <= ? AND yes_mid IS NOT NULL
+                WHERE market_id = ? AND timestamp <= ? AND timestamp >= ? AND yes_mid IS NOT NULL
                 ORDER BY timestamp DESC LIMIT 1
                 """,
-                (market_id, timestamp.isoformat()),
+                (market_id, timestamp.isoformat(),
+                 (timestamp - timedelta(seconds=max_age_seconds)).isoformat()),
             ).fetchone()
         return float(row["yes_mid"]) if row else None
 
-    def external_price_at_or_before(self, symbol: str, timestamp: datetime) -> float | None:
+    def external_price_at_or_before(
+        self, symbol: str, timestamp: datetime, max_age_seconds: int = 60,
+        venue: str | None = None,
+    ) -> float | None:
         with self.connect() as connection:
             row = connection.execute(
                 """
                 SELECT price FROM external_prices
-                WHERE symbol = ? AND timestamp <= ?
+                WHERE symbol = ? AND timestamp <= ? AND timestamp >= ?
+                    AND (? IS NULL OR venue = ?)
                 ORDER BY timestamp DESC LIMIT 1
                 """,
-                (symbol, timestamp.isoformat()),
+                (symbol, timestamp.isoformat(),
+                 (timestamp - timedelta(seconds=max_age_seconds)).isoformat(), venue, venue),
             ).fetchone()
         return float(row["price"]) if row else None
+
+    def insert_quote_history(self, points: list[QuoteHistoryPoint], retrieved_at: datetime) -> int:
+        with self.connect() as connection:
+            before = connection.total_changes
+            connection.executemany(
+                """INSERT OR IGNORE INTO quote_history
+                (market_id, timestamp, yes_ask, no_ask, source, retrieved_at)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                [(p.market_id, p.timestamp.isoformat(), p.yes_ask, p.no_ask,
+                  p.source, retrieved_at.isoformat()) for p in points],
+            )
+            return connection.total_changes - before
 
     def counts(self) -> dict[str, int]:
         tables = (
@@ -340,10 +419,11 @@ class Storage:
             "external_prices",
             "market_trades",
             "features",
+            "market_metadata_snapshots",
+            "quote_history",
         )
         with self.connect() as connection:
             return {
                 table: int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
                 for table in tables
             }
-

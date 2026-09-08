@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import httpx
 import pytest
 
@@ -11,15 +13,15 @@ async def test_kraken_fallback_when_coinbase_is_unavailable():
         return httpx.Response(502, request=request)
 
     def kraken_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/0/public/Trades"
+        pair = request.url.params["pair"]
+        key, price = ("XXBTZUSD", "62500") if pair == "XBTUSD" else ("XETHZUSD", "2450")
         return httpx.Response(
             200,
             request=request,
             json={
                 "error": [],
-                "result": {
-                    "XXBTZUSD": {"c": ["62500.0", "1"], "v": ["100", "200"]},
-                    "XETHZUSD": {"c": ["2450.0", "1"], "v": ["500", "800"]},
-                },
+                "result": {key: [[price, "1", datetime.now(UTC).timestamp(), "b", "m", "", 1]]},
             },
         )
 
@@ -40,4 +42,3 @@ async def test_kraken_fallback_when_coinbase_is_unavailable():
     assert prices["BTC-USD"].price == 62_500
     assert prices["ETH-USD"].price == 2_450
     assert prices["BTC-USD"].venue == "kraken"
-

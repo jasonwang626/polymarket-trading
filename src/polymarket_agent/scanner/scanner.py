@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import re
 from datetime import UTC, datetime
 from typing import Protocol
+
+import httpx
 
 from polymarket_agent.config import Settings
 from polymarket_agent.data.storage import Storage
@@ -31,7 +34,7 @@ class DiscoverySource(Protocol):
 class MarketFeed(Protocol):
     async def get_market_books(self, market: Market) -> tuple[OrderBook, OrderBook]: ...
 
-    async def get_recent_trades(self, market: Market) -> list[Trade]: ...
+    async def get_recent_trades(self, market: Market) -> list[Trade] | None: ...
 
     async def close(self) -> None: ...
 
@@ -44,16 +47,36 @@ class PriceFeed(Protocol):
 
 def classify(features: FeatureSnapshot, market: Market, settings: Settings) -> tuple[ScanStatus, list[str]]:
     reasons: list[str] = []
+    if features.data_issues:
+        return ScanStatus.NO_TRADE, features.data_issues
+    if market.rule_issues:
+        return ScanStatus.NO_TRADE, market.rule_issues
+    if not market.active or market.closed or not market.accepting_orders:
+        return ScanStatus.NO_TRADE, ["市場未開放"]
     if features.external_price_stale:
         return ScanStatus.NO_TRADE, ["外部價格缺失或過期"]
     if features.spread is None:
         return ScanStatus.NO_TRADE, ["YES order book 缺少雙邊報價"]
+    if features.spread < 0:
+        return ScanStatus.NO_TRADE, ["買賣價交叉"]
     if features.spread > settings.filters.max_spread:
         return ScanStatus.NO_TRADE, [f"spread {features.spread:.4f} 超過上限"]
     if features.seconds_to_expiry <= 0:
         return ScanStatus.NO_TRADE, ["市場已到期"]
+    if market.venue == "polymarket_us":
+        if market.contract_type == "unknown":
+            return ScanStatus.NO_TRADE, ["尚未支援的合約規則"]
+        if min(features.bid_depth_usd, features.ask_depth_usd) < settings.filters.min_book_depth_usd:
+            return ScanStatus.NO_TRADE, ["最優價附近的雙邊掛單金額不足"]
+        return ScanStatus.WATCH, [
+            f"US {market.contract_type} 行情監控；尚未建立經驗證的勝率模型",
+            "公開 REST 未提供逐筆成交流；成交量特徵保留空值",
+            "外部現貨僅作參考，合約依 CF Benchmarks BRTI 規則判定",
+        ]
     if market.liquidity < settings.filters.min_liquidity_usd:
         return ScanStatus.NO_TRADE, ["流動性低於下限"]
+    if not features.recent_trades_available or features.recent_trade_count == 0:
+        return ScanStatus.NO_TRADE, ["缺少近期有效成交"]
 
     yes_score = 0
     no_score = 0
@@ -74,6 +97,11 @@ def classify(features: FeatureSnapshot, market: Market, settings: Settings) -> t
         reasons.append(f"YES 5m momentum 為負 ({momentum:+.2%})")
 
     external_return = features.external_return_5m
+    if external_return is not None and (
+        market.contract_type.endswith("_below")
+        or re.search(r"\b(below|under)\b", market.question, re.IGNORECASE)
+    ):
+        external_return = -external_return
     if external_return is not None and external_return >= settings.signals.min_external_return_5m:
         yes_score += 1
         reasons.append(f"外部現貨 5m 上漲 ({external_return:+.2%})")
@@ -118,18 +146,21 @@ class Scanner:
 
     async def _refresh_watchlist(self, now: datetime) -> None:
         needs_refresh = (
-            not self._watchlist
-            or self._last_discovery is None
+            self._last_discovery is None
             or (now - self._last_discovery).total_seconds()
             >= self.settings.scanner.discovery_refresh_seconds
         )
         if needs_refresh:
-            self._watchlist = await self.discovery.discover(now=now)
+            try:
+                self._watchlist = await self.discovery.discover(now=now)
+            except (httpx.HTTPError, ValueError, TypeError, KeyError):
+                self._watchlist = []
+                self._last_discovery = None
+                raise
             self._last_discovery = now
 
     async def scan_once(self, now: datetime | None = None) -> list[ScanResult]:
-        now = now or datetime.now(UTC)
-        await self._refresh_watchlist(now)
+        await self._refresh_watchlist(now or datetime.now(UTC))
         external_prices = await self.price_feed.get_btc_eth()
         for observation in external_prices.values():
             self.storage.insert_external_price(observation)
@@ -143,12 +174,26 @@ class Scanner:
                     "Market scan failed",
                     extra={"market_id": market.market_id, "error": repr(item)},
                 )
+                stamp = now or datetime.now(UTC)
+                seconds = max((market.resolution_time - stamp).total_seconds(), 0)
+                features = FeatureSnapshot(
+                    market_id=market.market_id, timestamp=stamp,
+                    seconds_to_expiry=seconds, minutes_to_expiry=seconds / 60,
+                    data_issues=["行情讀取失敗，本輪不產生訊號"],
+                )
+                self.storage.upsert_market(market, stamp)
+                self.storage.insert_features(features, ScanStatus.NO_TRADE.value, -1_000_000)
+                results.append(ScanResult(
+                    market=market, features=features, status=ScanStatus.NO_TRADE,
+                    rank_score=-1_000_000, reasons=features.data_issues,
+                ))
             else:
                 results.append(item)
         results.sort(key=lambda item: item.rank_score, reverse=True)
         LOGGER.info(
             "Scan cycle completed",
-            extra={"market_count": len(results), "failed_count": len(raw_results) - len(results)},
+            extra={"market_count": len(results),
+                   "failed_count": sum(isinstance(x, Exception) for x in raw_results)},
         )
         return results
 
@@ -156,14 +201,17 @@ class Scanner:
         self,
         market: Market,
         external_prices: dict[str, ExternalPrice],
-        now: datetime,
+        now: datetime | None,
     ) -> ScanResult:
         async with self._semaphore:
             yes_book, no_book = await self.market_feed.get_market_books(market)
             trades = await self.market_feed.get_recent_trades(market)
 
+        # Live observations arrive after the cycle starts. Historical callers may
+        # supply a fixed as-of clock; they must never ingest observations after it.
+        now = now or datetime.now(UTC)
         self.storage.upsert_market(market, now)
-        self.storage.insert_trades(trades)
+        self.storage.insert_trades([t for t in trades or [] if t.timestamp <= now])
         external = external_prices.get(market.underlying or "")
         snapshot, features = self.feature_engine.compute(
             market, yes_book, no_book, trades, external, now
@@ -182,11 +230,19 @@ class Scanner:
             reasons=reasons,
         )
 
-    async def run_forever(self) -> None:
-        while True:
+    async def run_forever(self, max_cycles: int | None = None) -> None:
+        cycles = 0
+        while max_cycles is None or cycles < max_cycles:
             started = asyncio.get_running_loop().time()
-            results = await self.scan_once()
-            print_results(results)
+            try:
+                results = await self.scan_once()
+                print_results(results)
+            except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+                LOGGER.warning("Scan cycle failed; retrying on next cycle",
+                               extra={"error": repr(exc)})
+            cycles += 1
+            if max_cycles is not None and cycles >= max_cycles:
+                break
             elapsed = asyncio.get_running_loop().time() - started
             await asyncio.sleep(max(self.settings.scanner.refresh_seconds - elapsed, 0))
 
@@ -208,10 +264,11 @@ def print_results(results: list[ScanResult]) -> None:
         print("未找到符合條件且可完整讀取的加密貨幣市場。")
         return
     stamp = datetime.now(UTC).isoformat(timespec="seconds")
-    print(f"\n=== Polymarket 唯讀掃描 {stamp} ===")
+    print(f"\n=== Polymarket US 唯讀掃描 {stamp} ===")
     for result in results:
         f = result.features
         print(f"\n{result.market.question}")
+        print(f"Deadline  {result.market.resolution_time.isoformat()} / {result.market.contract_type}")
         print(f"YES       {_fmt_float(f.polymarket_yes_mid)}")
         print(f"NO        {_fmt_float(f.polymarket_no_mid)}")
         print(f"Spread    {_fmt_float(f.spread)}")
@@ -220,5 +277,5 @@ def print_results(results: list[ScanResult]) -> None:
         print(f"OB Imbal  {_fmt_float(f.orderbook_imbalance, 2)}")
         print(f"{f.external_symbol or 'Spot':<9} {_fmt_money(f.external_spot)} / 5m {_fmt_pct(f.external_return_5m)}")
         print(f"Signal    {result.status.value}")
+        print("Fair odds 尚未建模")
         print(f"Reason    {'；'.join(result.reasons)}")
-

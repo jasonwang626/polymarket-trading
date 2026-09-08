@@ -1,11 +1,14 @@
+"""Explicitly synthetic, network-free US examples; use a separate database."""
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from polymarket_agent.discovery.polymarket import parse_market
-from polymarket_agent.models import ExternalPrice, Market, OrderBook, PriceLevel, Trade
+from polymarket_agent.data.polymarket_us import parse_book
+from polymarket_agent.discovery.polymarket_us import DEADLINE, parse_us_market
+from polymarket_agent.models import ExternalPrice, Market, OrderBook
 
 
 class OfflineDiscovery:
@@ -17,11 +20,19 @@ class OfflineDiscovery:
 
     async def discover(self, now: datetime | None = None) -> list[Market]:
         now = now or datetime.now(UTC)
-        payload = json.loads((self.fixture_dir / "market.json").read_text(encoding="utf-8"))
-        payload["endDate"] = (now + timedelta(minutes=30)).isoformat()
-        market = parse_market(payload)
-        if not market:
-            raise ValueError("Offline market fixture is invalid")
+        payload = json.loads((self.fixture_dir / "us_markets.json").read_text())
+        row = payload["events"][0]["markets"][0]
+        row["slug"] = "cpc-btc-offline-fixture"
+        row["question"] += " [OFFLINE 合成範例]"
+        for side in row["marketSides"]:
+            side["identifier"] = row["slug"]
+        future = (now + timedelta(days=30)).astimezone(ZoneInfo("America/New_York"))
+        date = future.strftime("12:00 AM ET on %B %d, %Y")
+        row["description"] = DEADLINE.sub(date, row["description"])
+        row["endDate"] = (now + timedelta(days=31)).isoformat()
+        market = parse_us_market(row)
+        if market is None:
+            raise ValueError("Invalid US offline fixture")
         return [market]
 
 
@@ -32,40 +43,17 @@ class OfflineMarketFeed:
     async def close(self) -> None:
         return None
 
-    def _book(self, filename: str, token_id: str, now: datetime) -> OrderBook:
-        payload = json.loads((self.fixture_dir / filename).read_text(encoding="utf-8"))
-        return OrderBook(
-            token_id=token_id,
-            timestamp=now,
-            bids=[PriceLevel(**x) for x in payload["bids"]],
-            asks=[PriceLevel(**x) for x in payload["asks"]],
-            last_trade_price=float(payload["last_trade_price"]),
-            raw=payload,
-        )
-
     async def get_market_books(self, market: Market) -> tuple[OrderBook, OrderBook]:
-        now = datetime.now(UTC)
-        return (
-            self._book("yes_book.json", market.yes_token_id, now),
-            self._book("no_book.json", market.no_token_id, now),
-        )
+        return parse_book({"marketData": {
+            "marketSlug": market.slug, "state": "MARKET_STATE_OPEN",
+            "transactTime": datetime.now(UTC).isoformat(),
+            "bids": [{"px": {"value": "0.55", "currency": "USD"}, "qty": "3000"}],
+            "offers": [{"px": {"value": "0.57", "currency": "USD"}, "qty": "1000"}],
+            "offline": True,
+        }}, market)
 
-    async def get_recent_trades(self, market: Market) -> list[Trade]:
-        now = datetime.now(UTC)
-        rows = json.loads((self.fixture_dir / "trades.json").read_text(encoding="utf-8"))
-        return [
-            Trade(
-                market_id=market.market_id,
-                timestamp=now - timedelta(seconds=row["seconds_ago"]),
-                price=row["price"],
-                size=row["size"],
-                side=row["side"],
-                outcome="Yes",
-                transaction_hash=row["transaction_hash"],
-                raw=row,
-            )
-            for row in rows
-        ]
+    async def get_recent_trades(self, market: Market) -> None:
+        return None
 
 
 class OfflinePriceFeed:
@@ -75,7 +63,6 @@ class OfflinePriceFeed:
     async def get_btc_eth(self) -> dict[str, ExternalPrice]:
         now = datetime.now(UTC)
         return {
-            "BTC-USD": ExternalPrice(symbol="BTC-USD", timestamp=now, price=62_500),
-            "ETH-USD": ExternalPrice(symbol="ETH-USD", timestamp=now, price=2_450),
+            "BTC-USD": ExternalPrice(symbol="BTC-USD", venue="offline", timestamp=now, price=62_500),
+            "ETH-USD": ExternalPrice(symbol="ETH-USD", venue="offline", timestamp=now, price=2_450),
         }
-

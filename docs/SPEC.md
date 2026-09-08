@@ -20,26 +20,38 @@ The system must not allow an LLM to directly bypass deterministic risk controls 
 
 ## 2. Initial Scope
 
-### In scope for v1
+### 核准的 v1 範圍（2026-09-08）
 
-Focus on liquid, short-horizon crypto-related Polymarket markets where an external reference price is available.
+使用者已確認使用 Polymarket US，並同意第一版改為美國版現有的中長天期 BTC 合約。這一節取代原本以短天期 BTC／ETH 為主的假設。
 
-Examples:
-- BTC above/below a threshold by a specified time
-- ETH above/below a threshold by a specified time
-- BTC up/down markets
-- Other crypto event contracts with clearly defined resolution conditions
+- 執行平台固定為 `polymarket_us`；只使用免登入的公開 REST 行情 API。
+- 合約觀察截止時間預設介於 0.05 小時至 365 天，可縮小範圍；實際候選仍須通過市場開放、規則可解析、價差與雙邊掛單深度檢查。
+- 分別辨識期間觸價 `touch_above`／`touch_below`，及到期判定 `terminal_above`／`terminal_below`／`terminal_range`。它們不能共用未經驗證的勝率模型。
+- 依完整 Yes 判定條件解析金額、比較運算、觀察截止時間及結算指數；不能用年份、slug 的四捨五入金額或 API 的 `endDate` 猜測。
+- `resolution_time` 在目前 schema 表示規則中的觀察截止時間；`settlement_time` 另存 API 的 `endDate`。ET 使用 `America/New_York` 的日光節約時間規則，再轉成 UTC。
+- 目前支援的實際規則以 CF Benchmarks BRTI 的 60 秒截尾平均值判定。Coinbase／Kraken 現貨是參考特徵，不能代替 BRTI 判定觸價或合約結果。
+- 保留 BTC／ETH 外部價格收集能力；ETH Polymarket 合約及 15 分鐘 Up/Down 不列為美國版現階段已支援功能。
+- 本次只有行情掃描、儲存、歷史報價讀取與資料品質檢查；輸出 `WATCH` 或 `NO_TRADE`。`fair_probability` 保留空值，禁止把動能或掛單分數當成勝率。
+- 不連接帳號、錢包、交易 API 憑證，不建立訂單，也不啟用紙上或實盤執行。
 
-### Out of scope for v1
+### 不在這次交付範圍
 
-- Politics
-- Elections
-- Geopolitical events
-- Illiquid long-duration markets
-- Fully autonomous live strategy modification
-- Leverage
-- External borrowing
-- Cross-exchange arbitrage requiring capital movement between venues
+體育／政治市場、槓桿、借款、跨平台資金移轉、未經確認的 ETH 合約、LLM 決策、勝率模型、模擬／實盤交易與自動策略升級。
+
+### 美國版資料契約
+
+1. 每個二元市場是一個 instrument；使用 `market_id = polymarket_us:{slug}` 和 `instrument_id = slug`。不能捏造兩個 ERC-1155 token ID。
+2. YES bid／ask 是實際 instrument 報價；NO bid = 1 − YES ask，NO ask = 1 − YES bid。NO 委託簿須標記為合成顯示，不得把兩邊深度或成交量重複加總。
+3. 歷史 `longPrice`／`shortPrice` 為委託簿衍生的顯示買價，儲存到獨立 `quote_history`。兩者可能合計大於 1；不能強制正規化、當作 mid、逐筆成交或實際成交保證。
+4. 30 天預設歷史主要為三小時間隔。自訂時間查詢逐日切分，每次至多 24 小時；原始觀察不一定等間隔。不向前填補缺值來製造分鐘訊號。
+5. 未連接需要憑證的成交流時，1／5／15 分鐘成交量及衍生指標應為 `null`，不是 0。`recent_trades_available=false`。
+6. 委託簿記錄來源時間與接收時間。外部價格保留 Coinbase `time` 或 Kraken Recent Trades 的交易所時間；未來、過期或幣別不符的觀察不得通過品質檢查。
+7. 動能查詢只能使用目標時間之前、設定容忍範圍內的樣本，且外部歷史須來自同一價格供應商。單一絕對報酬率不能假裝成波動度。
+8. 美國版流動性門檻使用最優價附近 1% 的雙邊掛單金額，各至少 100 美元（可設定）；metadata 的 `volume24hr` 只保留為供應商欄位與排序用途，未確認單位前不當作逐筆成交美元量。
+9. 公開 API 共用節流器，預設每秒 5 個請求；只重試網路暫時故障、429、500／502／503／504。401／403／451 不重試或更換路徑繞過。歷史重複查詢至少快取 30 秒。
+10. 美國版與舊國際版資料使用不同識別；新預設資料庫 `data/scanner-us.sqlite3`。舊資料庫可非破壞性新增欄位，原始快照保留；每個 SQLite connection 都啟用外鍵。
+
+最小數量與費用須保留原始 metadata。公開 API 的數量精度與教學文件存在差異，實盤前必須用正式規格確認；本階段不產生可執行數量。費用模型及進出場價格將在 paper sprint 依美國版規則建立。
 
 ---
 
@@ -81,7 +93,7 @@ Responsibilities:
 - Retrieve active Polymarket markets.
 - Filter by category, liquidity, volume, expiry horizon, and market type.
 - Identify markets with clear resolution rules.
-- Track market metadata and token IDs.
+- Track market metadata, venue, instrument ID, rule hash, and observation deadline.
 - Maintain a watchlist.
 
 Minimum filters:
@@ -97,8 +109,9 @@ Output:
 {
   "market_id": "string",
   "question": "string",
-  "yes_token_id": "string",
-  "no_token_id": "string",
+  "venue": "polymarket_us",
+  "instrument_id": "market-slug",
+  "contract_type": "touch_above",
   "resolution_time": "timestamp",
   "liquidity": 0,
   "volume_24h": 0,
@@ -326,8 +339,9 @@ Modes:
 3. LIVE_MICRO
 4. LIVE
 
-Default:
-PAPER
+Current implemented mode: READ_ONLY.
+
+When the future execution engine is implemented, its default must be PAPER.
 
 Responsibilities:
 - Generate intended order.
@@ -477,8 +491,11 @@ Suggested initial tables:
 - question
 - category
 - resolution_time
-- yes_token_id
-- no_token_id
+- venue
+- instrument_id
+- contract_type
+- settlement_time
+- rule_hash
 - status
 
 ### market_snapshots
@@ -599,7 +616,7 @@ polymarket-agent/
 - Never commit secrets to Git.
 - Store credentials in environment variables or a secret manager.
 - Separate read-only data credentials from trading credentials.
-- Default execution mode must be PAPER.
+- Current scanner mode must be READ_ONLY; future execution mode must default to PAPER.
 - Require explicit configuration to enable LIVE_MICRO.
 - Maintain a kill switch outside the LLM.
 - Log all order submissions and cancellations.
@@ -638,16 +655,16 @@ Phase 1 is successful when the system can:
 
 1. Discover active crypto-related Polymarket markets.
 2. Refresh market data every 5–10 seconds.
-3. Store price, spread, liquidity, volume, and order-book data.
+3. Store price, spread, book depth and raw order-book data; unavailable trade volume remains null.
 4. Join Polymarket markets with external BTC/ETH prices.
 5. Compute initial feature set.
-6. Generate WATCH / POSSIBLE_YES / POSSIBLE_NO / NO_TRADE signals.
+6. Generate WATCH / NO_TRADE monitoring labels. Directional signals require the later validated model.
 7. Run continuously without a connected wallet.
-8. Produce a daily evaluation report.
+8. Produce reproducible validation evidence; strategy performance reports belong to the later evaluation sprint.
 
 Phase 2 is successful when:
-- The LLM decision layer runs on top of quantitative signals.
-- Paper trades are generated.
+- Market-specific fair probabilities, deterministic risk checks and realistic paper execution are validated.
+- Paper trades are generated before adding an LLM reviewer.
 - Decisions are reproducible.
 - Quant-only vs Quant+LLM performance can be compared.
 
@@ -660,3 +677,17 @@ Phase 4 is successful when:
 - Strategy improvement proposals are automatically generated.
 - Candidate changes are backtested and shadow-tested.
 - No production strategy is changed without passing promotion gates.
+
+
+## 11. 美國版介接依據（2026-09-08 查核）
+
+- [公開與需驗證 API 的分工](https://docs.polymarket.us/api-reference/introduction)
+- [單一 instrument 市場結構](https://docs.polymarket.us/learn/trading/basics/buying-yes-vs-selling-no)
+- [市場搜尋](https://docs.polymarket.us/api-reference/search/search)
+- [委託簿](https://docs.polymarket.us/api-reference/markets/get-market-book)
+- [歷史報價的語意與取樣](https://docs.polymarket.us/api-reference/price-history/get-price-history)
+- [美國版費用規則](https://docs.polymarket.us/fees)
+- [Coinbase ticker 來源時間](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-ticker)
+- [Kraken Recent Trades](https://docs.kraken.com/api-reference/market-data/get-recent-trades)
+
+其餘功能章節描述後續目標；已實作範圍與驗收狀態以第 2 節、PLAN.md 和 IMPLEMENTATION_STATUS.md 為準。

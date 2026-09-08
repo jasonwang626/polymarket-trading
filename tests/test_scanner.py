@@ -27,6 +27,8 @@ def test_classifier_possible_yes():
         seconds_to_expiry=3600,
         minutes_to_expiry=60,
         external_price_stale=False,
+        recent_trades_available=True,
+        recent_trade_count=1,
     )
     status, reasons = classify(features, market, settings)
     assert status == ScanStatus.POSSIBLE_YES
@@ -52,4 +54,3 @@ def test_classifier_blocks_stale_data():
         external_price_stale=True,
     )
     assert classify(features, market, settings)[0] == ScanStatus.NO_TRADE
-
