@@ -49,6 +49,26 @@ uv run --frozen polymarket-capture captures/offline-check --cycles 2 --offline
 
 每次 session 會保存 `session-start.json`、`capture.sqlite3`、`scanner.jsonl`、`audit.json`、`AUDIT.md` 與完成後的 `session.json`。最終清單包含停止原因、成功／失敗輪數、單一市場失敗數、資料庫健康摘要、程式來源狀態及檔案 SHA-256。工具拒絕重用既有目錄；Ctrl-C 中止仍會封存並標記 `cancelled`。`healthy=true` 只表示收集與資料完整性檢查通過；正式資料集另要求 `provenance_status=clean_git`，兩者都不代表策略有獲利能力。
 
+先通過 24 小時驗收後，可使用 campaign 讓每 24 小時自動建立新分卷：
+
+```bash
+caffeinate -dimsu uv run --frozen polymarket-campaign \
+  captures/30-day-2026-09 \
+  --days 30 \
+  --session-hours 24 \
+  --max-markets 10
+```
+
+正式線上 campaign 啟動前會要求至少 40 GiB 可用空間及乾淨的 Git commit；每卷前保留至少 5 GiB。設定或 commit 中途改變會停止。中斷後使用**完全相同參數**加上 `--resume`，舊分卷不會遭重用或刪除：
+
+```bash
+caffeinate -dimsu uv run --frozen polymarket-campaign \
+  captures/30-day-2026-09 \
+  --days 30 --session-hours 24 --max-markets 10 --resume
+```
+
+`campaign-start.json`、雜湊鏈 `events.jsonl` 與完成後的 `campaign.json` 記錄版本、設定、每次嘗試及彙總。磁碟不足時會安全暫停，釋放空間後可續跑。完整步驟見 [30 天收集操作手冊](docs/CAMPAIGN_RUNBOOK.md)。
+
 ## 歷史報價收集
 
 已提供逐日切分的公開歷史收集工具，日期為 UTC，起始日包含、結束日不包含：

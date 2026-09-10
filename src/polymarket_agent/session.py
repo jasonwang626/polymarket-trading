@@ -39,6 +39,7 @@ class SessionOptions:
     duration_seconds: float | None = None
     max_markets: int | None = None
     offline: bool = False
+    show_results: bool = True
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -77,7 +78,8 @@ def _package_version() -> str:
         return "unknown"
 
 
-def _source_revision(project_root: Path) -> dict[str, Any]:
+def source_revision(project_root: Path) -> dict[str, Any]:
+    """Return the current Git revision without mutating the working tree."""
     try:
         revision = subprocess.run(
             ["git", "-C", str(project_root), "rev-parse", "HEAD"],
@@ -131,7 +133,7 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
     _validate_options(options)
     assert_no_trading_secrets()
     settings = load_settings(options.config)
-    source_revision = _source_revision(settings.project_root)
+    revision = source_revision(settings.project_root)
     output_dir = options.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=False)
     database_path = output_dir / "capture.sqlite3"
@@ -161,7 +163,7 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
             "package_version": _package_version(),
             "python": sys.version.split()[0],
             "platform": platform.platform(),
-            **source_revision,
+            **revision,
         },
         "config_sha256": config_hash,
         "config": config_snapshot,
@@ -191,6 +193,7 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
         summary = await scanner.run_forever(
             max_cycles=options.cycles,
             max_duration_seconds=options.duration_seconds,
+            show_results=options.show_results,
         )
         outcome = "completed"
         if summary.failed_cycles or summary.market_failures:
@@ -226,9 +229,9 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
             and summary
             and summary.successful_cycles > 0
         )
-        if source_revision["git_commit"] and source_revision["git_dirty"] is False:
+        if revision["git_commit"] and revision["git_dirty"] is False:
             provenance_status = "clean_git"
-        elif source_revision["git_dirty"] is True:
+        elif revision["git_dirty"] is True:
             provenance_status = "uncommitted_changes"
         else:
             provenance_status = "unavailable"

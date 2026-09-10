@@ -59,4 +59,4 @@ Session ID：`9817df52-3919-449d-9fca-ab7065175259`
 - 勝率模型與損益回測：未開始；缺少正式結算標籤與真實成交資料。
 - 實盤：禁止；不接帳號或資金。
 
-下一個資料門檻是在乾淨的 GitHub branch 上完成 24 小時唯讀 session，確認 `provenance_status=clean_git`；通過後再改為每日獨立 session，累積連續 30 天。這些資料只能先用於資料品質與行情結構研究，直到正式標籤、成本及成交模型完成驗收。
+下一個資料門檻是在乾淨的 GitHub branch 上以 `polymarket-campaign` 完成 24 小時唯讀 session，確認 `provenance_status=clean_git`；通過後由同一工具每日獨立分卷，累積連續 30 天。這些資料只能先用於資料品質與行情結構研究，直到正式標籤、成本及成交模型完成驗收。

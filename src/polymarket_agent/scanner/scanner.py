@@ -299,6 +299,7 @@ class Scanner:
         self,
         max_cycles: int | None = None,
         max_duration_seconds: float | None = None,
+        show_results: bool = True,
     ) -> RunSummary:
         if max_cycles is not None and max_cycles < 1:
             raise ValueError("max_cycles must be positive")
@@ -317,7 +318,8 @@ class Scanner:
             attempted += 1
             try:
                 results = await self.scan_once()
-                print_results(results)
+                if show_results:
+                    print_results(results)
                 successful += 1
                 result_count += len(results)
                 market_failures += self._last_market_failures

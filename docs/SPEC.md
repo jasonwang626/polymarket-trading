@@ -156,6 +156,8 @@ Persistence:
 - 已存在的 session 目錄不得重用；正常、部分錯誤及人工中止必須可區分。封存前將 WAL 合併回主資料庫，使單一 SQLite 檔可攜且可驗證。
 - `healthy` 表示收集流程與儲存完整性；`provenance_status` 另表示程式是否來自無未提交變更的 Git commit。正式長期資料集兩者都須通過。
 - 每筆特徵必須在 SQLite 同時保存最終 WATCH／NO_TRADE 狀態及完整決策原因；報告須以穩定類別彙總，不能只存在終端輸出。
+- 連續資料 campaign 每 24 小時建立新 session，禁止覆寫或續寫既有分卷。啟動及續跑須驗證同一設定與 Git commit，事件採 append-only 雜湊鏈；中斷使用新 attempt 目錄。
+- campaign 啟動及每卷前檢查可用空間；低於安全保留值時停止新增分卷，保留現有資料供釋放空間後明確續跑。
 
 ---
 
