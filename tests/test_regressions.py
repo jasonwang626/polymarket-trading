@@ -33,7 +33,9 @@ def test_upgrade_real_v1_schema_keeps_existing_data(tmp_path):
     with db.connect() as c:
         old = c.execute("SELECT * FROM markets WHERE market_id='old'").fetchone()
         assert old["yes_token_id"] == "yes" and old["venue"] == "polymarket_international"
-        assert c.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert c.execute("PRAGMA user_version").fetchone()[0] == 3
+        feature_columns = {row["name"] for row in c.execute("PRAGMA table_info(features)")}
+        assert "decision_reasons_json" in feature_columns
         assert c.execute("PRAGMA foreign_key_check").fetchall() == []
     assert db.counts()["market_snapshots"] == 1
 

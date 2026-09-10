@@ -109,7 +109,8 @@ CREATE TABLE IF NOT EXISTS features (
     timestamp TEXT NOT NULL,
     status TEXT NOT NULL,
     rank_score REAL NOT NULL,
-    features_json TEXT NOT NULL
+    features_json TEXT NOT NULL,
+    decision_reasons_json TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_features_market_time
@@ -152,7 +153,7 @@ class Storage:
     def initialize(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
-            if connection.execute("PRAGMA user_version").fetchone()[0] > 2:
+            if connection.execute("PRAGMA user_version").fetchone()[0] > 3:
                 raise ValueError("Database schema is newer than this application")
             connection.executescript(SCHEMA)
             additions = {
@@ -169,13 +170,14 @@ class Storage:
                     "received_at": "TEXT",
                 },
                 "external_prices": {"received_at": "TEXT"},
+                "features": {"decision_reasons_json": "TEXT NOT NULL DEFAULT '[]'"},
             }
             for table, columns in additions.items():
                 existing = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
                 for name, definition in columns.items():
                     if name not in existing:
                         connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
-            connection.execute("PRAGMA user_version=2")
+            connection.execute("PRAGMA user_version=3")
 
     @staticmethod
     def _json(value: Any) -> str:
@@ -349,13 +351,18 @@ class Storage:
         return inserted
 
     def insert_features(
-        self, features: FeatureSnapshot, status: str, rank_score: float
+        self,
+        features: FeatureSnapshot,
+        status: str,
+        rank_score: float,
+        decision_reasons: list[str] | None = None,
     ) -> int:
         with self.connect() as connection:
             cursor = connection.execute(
                 """
-                INSERT INTO features (market_id, timestamp, status, rank_score, features_json)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO features (
+                    market_id, timestamp, status, rank_score, features_json, decision_reasons_json
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     features.market_id,
@@ -363,6 +370,7 @@ class Storage:
                     status,
                     rank_score,
                     self._json(features.model_dump(mode="json")),
+                    self._json(decision_reasons or []),
                 ),
             )
             return int(cursor.lastrowid)

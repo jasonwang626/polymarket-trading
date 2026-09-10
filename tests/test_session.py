@@ -20,6 +20,9 @@ async def test_offline_capture_session_is_complete_and_self_auditing(tmp_path):
 
     assert result["outcome"] == "completed"
     assert result["healthy"] is True
+    assert result["provenance_status"] in {
+        "clean_git", "uncommitted_changes", "unavailable"
+    }
     assert result["run"]["attempted_cycles"] == 2
     assert result["run"]["successful_cycles"] == 2
     assert result["run"]["failed_cycles"] == 0

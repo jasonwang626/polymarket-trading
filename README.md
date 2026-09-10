@@ -47,7 +47,7 @@ uv run --frozen polymarket-capture \
 uv run --frozen polymarket-capture captures/offline-check --cycles 2 --offline
 ```
 
-每次 session 會保存 `session-start.json`、`capture.sqlite3`、`scanner.jsonl`、`audit.json`、`AUDIT.md` 與完成後的 `session.json`。最終清單包含停止原因、成功／失敗輪數、單一市場失敗數、資料庫健康摘要及檔案 SHA-256。工具拒絕重用既有目錄；Ctrl-C 中止仍會封存並標記 `cancelled`。`healthy=true` 只表示收集與資料完整性檢查通過，不代表策略有獲利能力。
+每次 session 會保存 `session-start.json`、`capture.sqlite3`、`scanner.jsonl`、`audit.json`、`AUDIT.md` 與完成後的 `session.json`。最終清單包含停止原因、成功／失敗輪數、單一市場失敗數、資料庫健康摘要、程式來源狀態及檔案 SHA-256。工具拒絕重用既有目錄；Ctrl-C 中止仍會封存並標記 `cancelled`。`healthy=true` 只表示收集與資料完整性檢查通過；正式資料集另要求 `provenance_status=clean_git`，兩者都不代表策略有獲利能力。
 
 ## 歷史報價收集
 
@@ -94,7 +94,7 @@ API 固定使用 `https://gateway.polymarket.us`，共用每秒 5 次節流器�
 | `features` | 特徵、資料品質、分類與排序 |
 | `market_trades` | 舊版成交資料；目前 US REST 不寫入虛構成交 |
 
-SQLite schema v2 採新增欄位及資料表升級，保留舊版資料。`condition_id`、`yes_token_id`、`no_token_id` 僅供舊國際版紀錄；US 紀錄為空字串。不要刪除原始資料庫來升級。
+SQLite schema v3 採新增欄位及資料表升級，保留舊版資料。v3 將每筆 WATCH／NO_TRADE 的實際決策原因保存於 `decision_reasons_json`；稽核、重播及資料清單仍可讀取 v2。`condition_id`、`yes_token_id`、`no_token_id` 僅供舊國際版紀錄；US 紀錄為空字串。不要刪除原始資料庫來升級。
 
 舊國際版解析器保留供歷史回歸測試，CLI 固定使用美國版。舊月測試報告不能當成美國版策略績效。
 
@@ -120,7 +120,7 @@ uv run --frozen python scripts/validate_capture.py \
   --output-dir reports/mac-hour-validation
 ```
 
-工具不連網、不改動資料庫；產生 `validation.md` 與 `validation.json`。若報告已存在，請使用新的 output-dir，避免混淆不同次測試。資料庫須為 schema v2；空資料會明確呈現空觀測期間。完整性檢查成功不等同行情新鮮、資料完整或策略可獲利。
+工具不連網、不改動資料庫；產生 `validation.md` 與 `validation.json`。若報告已存在，請使用新的 output-dir，避免混淆不同次測試。資料庫須為 schema v2 或 v3；v3 報告會彙總保存的決策原因。空資料會明確呈現空觀測期間。完整性檢查成功不等同行情新鮮、資料完整或策略可獲利。
 
 暫停市場等待期間仍有 NO_TRADE 決策特徵，但不會產生新的委託簿快照，因此特徵筆數與行情筆數可不同。報告保留此差異。
 

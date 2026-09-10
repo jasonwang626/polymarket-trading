@@ -226,6 +226,12 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
             and summary
             and summary.successful_cycles > 0
         )
+        if source_revision["git_commit"] and source_revision["git_dirty"] is False:
+            provenance_status = "clean_git"
+        elif source_revision["git_dirty"] is True:
+            provenance_status = "uncommitted_changes"
+        else:
+            provenance_status = "unavailable"
         final_manifest = {
             "format_version": FORMAT_VERSION,
             "session_id": session_id,
@@ -233,6 +239,7 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
             "ended_at": datetime.now(UTC),
             "outcome": outcome,
             "healthy": healthy,
+            "provenance_status": provenance_status,
             "failure_type": failure_type,
             "audit_error": audit_error,
             "run": _summary_payload(summary),
@@ -243,6 +250,10 @@ async def run_capture_session(options: SessionOptions) -> dict[str, Any]:
                 "window_start_utc": audit["window_start_utc"],
                 "window_end_utc": audit["window_end_utc"],
                 "statuses": audit["statuses"],
+                "quality_flags_overlapping": audit["quality_flags_overlapping"],
+                "decision_reason_categories_overlapping": (
+                    audit["decision_reason_categories_overlapping"]
+                ),
             } if audit else None),
             "sha256": {name: _sha256(output_dir / name) for name in artifact_names},
         }

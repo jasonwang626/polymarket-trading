@@ -207,7 +207,12 @@ class Scanner:
                     data_issues=["行情讀取失敗，本輪不產生訊號"],
                 )
                 self.storage.upsert_market(market, stamp)
-                self.storage.insert_features(features, ScanStatus.NO_TRADE.value, -1_000_000)
+                self.storage.insert_features(
+                    features,
+                    ScanStatus.NO_TRADE.value,
+                    -1_000_000,
+                    features.data_issues,
+                )
                 results.append(ScanResult(
                     market=market, features=features, status=ScanStatus.NO_TRADE,
                     rank_score=-1_000_000, reasons=features.data_issues,
@@ -241,7 +246,12 @@ class Scanner:
                     data_issues=[reason],
                 )
                 self.storage.upsert_market(market, stamp)
-                self.storage.insert_features(features, ScanStatus.NO_TRADE.value, -1_000_000)
+                self.storage.insert_features(
+                    features,
+                    ScanStatus.NO_TRADE.value,
+                    -1_000_000,
+                    [reason],
+                )
                 LOGGER.info("Halted market polling deferred market=%s remaining_seconds=%.3f",
                             market.market_id, remaining)
                 return ScanResult(market=market, features=features, status=ScanStatus.NO_TRADE,
@@ -276,7 +286,7 @@ class Scanner:
         self.storage.insert_market_snapshot(snapshot)
         self.storage.insert_orderbook(market.market_id, "YES", yes_book)
         self.storage.insert_orderbook(market.market_id, "NO", no_book)
-        self.storage.insert_features(features, status.value, score)
+        self.storage.insert_features(features, status.value, score, reasons)
         return ScanResult(
             market=market,
             features=features,

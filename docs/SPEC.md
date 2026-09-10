@@ -154,6 +154,8 @@ Persistence:
 - Maintain normalized tables for analysis.
 - 長時間收集須使用有界的 capture session。每次使用全新目錄，啟動時保存設定與執行環境，結束時保存停止原因、輪次統計、SQLite 唯讀稽核及所有成品的 SHA-256。
 - 已存在的 session 目錄不得重用；正常、部分錯誤及人工中止必須可區分。封存前將 WAL 合併回主資料庫，使單一 SQLite 檔可攜且可驗證。
+- `healthy` 表示收集流程與儲存完整性；`provenance_status` 另表示程式是否來自無未提交變更的 Git commit。正式長期資料集兩者都須通過。
+- 每筆特徵必須在 SQLite 同時保存最終 WATCH／NO_TRADE 狀態及完整決策原因；報告須以穩定類別彙總，不能只存在終端輸出。
 
 ---
 
@@ -713,12 +715,12 @@ US 委託簿原始狀態保留於 raw_json；正規化為 OPEN、HALTED、CLOSED
 
 歷史外部價格查詢同時限制交易所來源時間與 received_at；來源時間早於查詢點但當時尚未收到的價格不得用於計算歷史特徵。FeatureEngine 以當次計算時間 available_at 作為接收截止；單獨呼叫歷史查詢未指定 available_at 時，以查詢 timestamp 為截止。缺少 received_at 的舊紀錄不建立當時可得性假設。
 
-提供不連網的 validate_capture 工具，以 SQLite mode=ro 與 query_only 開啟 schema v2，不升級或修改原始資料；產生 JSON 與 Markdown 報告。包含完整性、外鍵、觀測數、狀態、原生委託簿狀態、時間差、觀測間隔及重疊品質旗標。暫停等待須與實際行情快照分開計數。報告不由 SQLite 推測預期輪數或 HTTP 成功率，不將資料稽核宣稱為策略重播或損益回測。
+提供不連網的 validate_capture 工具，以 SQLite mode=ro 與 query_only 開啟 schema v2／v3，不升級或修改原始資料；產生 JSON 與 Markdown 報告。包含完整性、外鍵、觀測數、狀態、原生委託簿狀態、時間差、觀測間隔、重疊品質旗標及 v3 決策原因類別。暫停等待須與實際行情快照分開計數。報告不由 SQLite 推測預期輪數或 HTTP 成功率，不將資料稽核宣稱為策略重播或損益回測。
 
 
 ### 歷史行情品質重播（2026-09-08）
 
-重播 schema v2 的實際 market_snapshots 時點，逐筆依觀測時間排序，不補造未觀測輪數。市場規則版本須 observed_at <= as_of；委託簿須 received_at <= as_of；外部價格同時要求來源時間及接收時間 <= as_of。缺少當時規則或委託簿時輸出 UNDETERMINED，缺少接收時間的輸入列不建立可得性假設並計數。
+重播 schema v2／v3 的實際 market_snapshots 時點，逐筆依觀測時間排序，不補造未觀測輪數。市場規則版本須 observed_at <= as_of；委託簿須 received_at <= as_of；外部價格同時要求來源時間及接收時間 <= as_of。缺少當時規則或委託簿時輸出 UNDETERMINED，缺少接收時間的輸入列不建立可得性假設並計數。
 
 重播使用當前 FeatureEngine 與分類設定，歷史 mid 由已重播且通過品質檢查的快照逐筆建立，不讀取來源已計算的特徵／分類，不讀取事後 markets 最新規則。每筆事件保留 metadata/book 快照 ID、所用來源／接收時間與重新計算的特徵。記錄市場狀態及規則雜湊轉換、缺口與不可判定情況；這些事件不是實際退場或成交。
 

@@ -179,3 +179,12 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 離線命令列煙霧測試完成 2/2 輪、2 筆 WATCH，資料庫 integrity_check=ok、外鍵錯誤 0；所有清單雜湊重算一致。自動測試另涵蓋既有目錄拒絕且原檔不變、輪數／時間參數互斥、時間截止停止、Ctrl-C 取消後仍封存、WAL／SHM 不殘留。完整 107 項測試、Ruff、Python 編譯及 diff 格式檢查通過。
 
 這項功能只改善資料證據與長時間操作的可追溯性，沒有建立勝率、交易標籤、成交或損益。下一個部署驗收仍是使用者 Mac 的完整交易時段 session，之後才累積連續 30 天資料。
+
+
+## Mac 8 小時 Session（2026-09-09）
+
+使用者 Mac 完成 8 小時有界唯讀收集：2,879 輪全部成功、10 個市場、28,790 筆決策、0 輪失敗、0 單一市場失敗。SQLite integrity_check=ok、外鍵錯誤 0，五個清單內 SHA-256 全部重算一致。34,644 個已完成 HTTP 回應全為 200；7 次 Coinbase 逾時由 Kraken 全數備援，BTC／ETH 每輪均有一筆有效外部價格。28,790 個原生委託簿皆為 OPEN。
+
+WATCH 2,226（7.73%）、NO_TRADE 26,564（92.27%）。依 schema v2 已保存特徵與 session 設定事後重建，主要拒絕為委託簿資料問題 16,869、每側深度低於 $100 共 9,674、spread 超過 0.08 共 21。資料問題包含 14,638 筆委託簿時間過期及 2,879 筆缺少雙邊報價／交叉，兩者有重疊。這是行情品質結果，不是網路故障或策略損益。
+
+本次 manifest 顯示 git_dirty=true，且記錄的 commit 不存在於遠端 repository，因此運作驗收通過但不列為可重現正式模型資料。依此結果升級 schema v3 保存逐筆 decision_reasons_json、全域品質彙總及 provenance_status；v2 稽核／重播維持相容。完整結果見 [MAC_8H_VALIDATION_REPORT.md](MAC_8H_VALIDATION_REPORT.md)。新版完整 108 項測試、Ruff、Python 編譯與 diff 檢查通過；不啟用模型、paper 或 live trading。

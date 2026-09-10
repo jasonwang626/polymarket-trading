@@ -54,8 +54,8 @@ def replay_capture(path: Path, settings: Settings) -> tuple[dict[str, Any], list
         db.row_factory = sqlite3.Row
         db.execute('PRAGMA query_only=ON')
         db.execute('BEGIN')
-        if db.execute('PRAGMA user_version').fetchone()[0] != 2:
-            raise ValueError('Replay requires schema v2')
+        if db.execute('PRAGMA user_version').fetchone()[0] not in {2, 3}:
+            raise ValueError('Replay requires schema v2 or v3')
         if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
             raise ValueError('Source database integrity failed')
         if db.execute('PRAGMA foreign_key_check').fetchone():
