@@ -52,11 +52,13 @@ uv run --frozen polymarket-capture captures/offline-check --cycles 2 --offline
 先通過 24 小時驗收後，可使用 campaign 讓每 24 小時自動建立新分卷：
 
 ```bash
+mkdir -p captures
 caffeinate -dimsu uv run --frozen polymarket-campaign \
   captures/30-day-2026-09 \
   --days 30 \
   --session-hours 24 \
-  --max-markets 10
+  --max-markets 10 \
+  | tee captures/30-day-result.json
 ```
 
 正式線上 campaign 啟動前會要求至少 40 GiB 可用空間及乾淨的 Git commit；每卷前保留至少 5 GiB。設定或 commit 中途改變會停止。中斷後使用**完全相同參數**加上 `--resume`，舊分卷不會遭重用或刪除：
@@ -64,8 +66,11 @@ caffeinate -dimsu uv run --frozen polymarket-campaign \
 ```bash
 caffeinate -dimsu uv run --frozen polymarket-campaign \
   captures/30-day-2026-09 \
-  --days 30 --session-hours 24 --max-markets 10 --resume
+  --days 30 --session-hours 24 --max-markets 10 --resume \
+  | tee captures/30-day-resume-result.json
 ```
+
+結果檔必須放在已由 `.gitignore` 排除的 `captures/` 或 repository 外；若先用 `tee` 在 repository 根目錄建立檔案，正式 campaign 會正確地拒絕 dirty Git，錯誤訊息會列出造成阻擋的路徑。
 
 `campaign-start.json`、雜湊鏈 `events.jsonl` 與完成後的 `campaign.json` 記錄版本、設定、每次嘗試及彙總。磁碟不足時會安全暫停，釋放空間後可續跑。完整步驟見 [30 天收集操作手冊](docs/CAMPAIGN_RUNBOOK.md)。
 

@@ -88,16 +88,20 @@ def source_revision(project_root: Path) -> dict[str, Any]:
             text=True,
             timeout=2,
         ).stdout.strip()
-        dirty = bool(subprocess.run(
+        status = subprocess.run(
             ["git", "-C", str(project_root), "status", "--porcelain"],
             check=True,
             capture_output=True,
             text=True,
             timeout=2,
-        ).stdout.strip())
-        return {"git_commit": revision, "git_dirty": dirty}
+        ).stdout.strip()
+        return {
+            "git_commit": revision,
+            "git_dirty": bool(status),
+            "git_status": status.splitlines()[:20],
+        }
     except (OSError, subprocess.SubprocessError):
-        return {"git_commit": None, "git_dirty": None}
+        return {"git_commit": None, "git_dirty": None, "git_status": []}
 
 
 def _flush_logs() -> None:

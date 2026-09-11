@@ -119,7 +119,8 @@ def _require_runtime(start: dict[str, Any] | None, options: CampaignOptions) -> 
     if not options.offline and (
         not revision["git_commit"] or revision["git_dirty"] is not False
     ):
-        raise ValueError("live campaign requires a clean Git commit")
+        detail = "; ".join(revision.get("git_status", [])) or "Git revision unavailable"
+        raise ValueError(f"live campaign requires a clean Git commit; git status: {detail}")
     if start is not None and start["runtime"]["git_commit"] != revision["git_commit"]:
         raise ValueError("resume requires the same Git commit as campaign start")
     if start is not None and start["config_sha256"] != config_hash:

@@ -37,7 +37,7 @@ async def test_offline_capture_session_is_complete_and_self_auditing(tmp_path):
     assert start["offline"] is True
     assert start["artifacts"]["database"] == "capture.sqlite3"
     assert set(start["runtime"]) == {
-        "package_version", "python", "platform", "git_commit", "git_dirty"
+        "package_version", "python", "platform", "git_commit", "git_dirty", "git_status"
     }
     assert "T" in start["started_at"]
     assert (output / "AUDIT.md").read_text().startswith("# 唯讀掃描資料驗證報告")

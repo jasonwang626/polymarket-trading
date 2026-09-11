@@ -137,10 +137,14 @@ async def test_live_campaign_requires_clean_git_before_creating_root(monkeypatch
     root = tmp_path / "campaign"
     monkeypatch.setattr(
         "polymarket_agent.campaign.source_revision",
-        lambda project_root: {"git_commit": "abc", "git_dirty": True},
+        lambda project_root: {
+            "git_commit": "abc",
+            "git_dirty": True,
+            "git_status": ["?? mac-24h-result.json"],
+        },
     )
 
-    with pytest.raises(ValueError, match="clean Git commit"):
+    with pytest.raises(ValueError, match=r"\?\? mac-24h-result.json"):
         await run_campaign(_options(root, days=1, offline=False))
 
     assert not root.exists()
