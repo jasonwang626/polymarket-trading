@@ -1,0 +1,13 @@
+{
+  "asset_id": "offline-no-token",
+  "bids": [
+    {"price": 0.43, "size": 500},
+    {"price": 0.42, "size": 400}
+  ],
+  "asks": [
+    {"price": 0.45, "size": 1200},
+    {"price": 0.46, "size": 600}
+  ],
+  "last_trade_price": 0.44
+}
+

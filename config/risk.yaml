@@ -1,0 +1,7 @@
+# Reserved for later deterministic risk-engine phases.
+# Sprint 1 never creates intended orders and never executes trades.
+mode: READ_ONLY
+wallet_enabled: false
+order_submission_enabled: false
+live_trading_enabled: false
+
