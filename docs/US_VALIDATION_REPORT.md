@@ -188,3 +188,9 @@ Coinbase ticker 與 Kraken Recent Trades 的 BTC／ETH 請求發生 ReadTimeout�
 WATCH 2,226（7.73%）、NO_TRADE 26,564（92.27%）。依 schema v2 已保存特徵與 session 設定事後重建，主要拒絕為委託簿資料問題 16,869、每側深度低於 $100 共 9,674、spread 超過 0.08 共 21。資料問題包含 14,638 筆委託簿時間過期及 2,879 筆缺少雙邊報價／交叉，兩者有重疊。這是行情品質結果，不是網路故障或策略損益。
 
 本次 manifest 顯示 git_dirty=true，且記錄的 commit 不存在於遠端 repository，因此運作驗收通過但不列為可重現正式模型資料。依此結果升級 schema v3 保存逐筆 decision_reasons_json、全域品質彙總及 provenance_status；v2 稽核／重播維持相容。完整結果見 [MAC_8H_VALIDATION_REPORT.md](MAC_8H_VALIDATION_REPORT.md)。新版完整 108 項測試、Ruff、Python 編譯與 diff 檢查通過；不啟用模型、paper 或 live trading。
+
+## Mac 24 小時 clean-provenance Campaign（2026-09-10 至 2026-09-11）
+
+使用者 Mac 以已推送的 commit `58be9402...` 完成一個乾淨 Git 的 24 小時 campaign：8,636 輪全部成功、0 整輪／市場失敗、82,460 筆決策、97,588 個 HTTP 200、SQLite integrity=ok、外鍵 0、事件雜湊鏈與全部 session 成品雜湊通過。Coinbase 22 次 timeout 均由 Kraken 備援，沒有 ERROR／CRITICAL。這補足先前 8 小時樣本的 provenance 缺口。
+
+但 80,729／82,460 筆為 NO_TRADE；74.97% 含資料問題、67.14% 含委託簿過期旗標。這是安全資料品質阻擋成功，不是策略績效。完整結果見 [MAC_24H_VALIDATION_REPORT.md](MAC_24H_VALIDATION_REPORT.md)；下一步是 30 個每日唯讀分卷，之後才評估可用資料與標籤。
